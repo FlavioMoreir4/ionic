@@ -4,61 +4,55 @@
 // iOS Radio
 // --------------------------------------------------
 
-// iOS Radio Circle: Unchecked
-// -----------------------------------------
-
-.radio-ios .radio-icon {
-  position: relative;
-  display: block;
-
-  width: $radio-ios-icon-width;
-  height: $radio-ios-icon-height;
-
-  contain: strict;
+:host {
+  --color-checked: #{ion-color(primary, base)};
 }
 
+:host(.ion-color.radio-checked) .radio-inner {
+  border-color: current-color(base);
+}
+
+.item-radio.item-ios ion-label {
+  @include margin-horizontal(0, null);
+}
 
 // iOS Radio Checkmark: Checked
 // -----------------------------------------
 
-.radio-ios.radio-checked .radio-inner {
-  @include position(4px, null, null, 7px);
+.radio-inner {
+  width: 33%;
+  height: 50%;
+}
 
-  position: absolute;
-
-  width: 5px;
-  height: 12px;
+:host(.radio-checked) .radio-inner {
+  transform: rotate(45deg);
 
   border-width: $radio-ios-icon-border-width;
   border-top-width: 0;
   border-left-width: 0;
   border-style: $radio-ios-icon-border-style;
-  border-color: $radio-ios-color-on;
-  transform: rotate(45deg);
+  border-color: var(--color-checked);
 }
-
 
 // iOS Radio: Disabled
 // -----------------------------------------
+// The radio and label should use the
+// same opacity and match the other form
+// controls
 
-.radio-ios.radio-disabled,
-.item-ios.item-radio-disabled ion-label {
+:host(.radio-disabled) {
   opacity: $radio-ios-disabled-opacity;
-
-  pointer-events: none;
 }
-
 
 // iOS Radio: Keyboard Focus
 // -----------------------------------------
 
-.radio-key .radio-icon::after {
-  @include border-radius(50%);
+:host(.ion-focused) .radio-icon::after {
+  @include border-radius(var(--inner-border-radius));
   @include position(-8px, null, null, -9px);
 
-  position: absolute;
-
   display: block;
+  position: absolute;
 
   width: 36px;
   height: 36px;
@@ -66,61 +60,13 @@
   background: $radio-ios-background-color-focused;
 
   content: "";
-
-  opacity: .2;
+  opacity: 0.2;
 }
 
+// Radio Native Wrapper
+// ----------------------------------------------------------------
 
-// iOS Radio Within An Item
-// -----------------------------------------
-
-.item-ios .radio-ios {
-  @include margin($radio-ios-item-end-margin-top, $radio-ios-item-end-margin-end, $radio-ios-item-end-margin-bottom, $radio-ios-item-end-margin-start);
-
-  position: static;
-  display: block;
-
-  &[slot="start"] {
-    @include margin($radio-ios-item-start-margin-top, $radio-ios-item-start-margin-end, $radio-ios-item-start-margin-bottom, $radio-ios-item-start-margin-start);
-  }
-}
-
-.item-radio.item-ios ion-label {
-  @include margin-horizontal(0, null);
-}
-
-
-// iOS Radio Item Label: Checked
-// -----------------------------------------
-
-.item-radio-checked.item-ios ion-label {
-  color: $radio-ios-color-on;
-}
-
-
-// iOS Radio Color Mixin
-// --------------------------------------------------
-
-@mixin radio-theme-ios($color-name) {
-  $color-base: ion-color($colors-ios, $color-name, base, ios);
-
-  .item-radio-ios-#{$color-name}.item-radio-checked ion-label {
-    color: $color-base;
-  }
-
-  .radio-ios-#{$color-name}.radio-checked {
-    color: $color-base;
-  }
-
-  .radio-ios-#{$color-name}.radio-checked .radio-inner {
-    border-color: $color-base;
-  }
-}
-
-
-// Generate iOS Radio Colors
-// --------------------------------------------------
-
-@each $color-name, $color-value in $colors-ios {
-  @include radio-theme-ios($color-name);
+.native-wrapper .radio-icon {
+  width: $radio-ios-icon-width;
+  height: $radio-ios-icon-height;
 }

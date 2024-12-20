@@ -1,28 +1,36 @@
-import { Animation } from '../../../interface';
+import { createAnimation } from '@utils/animation/animation';
+import { getElementRoot } from '@utils/helpers';
+
+import type { Animation } from '../../../interface';
+import type { ModalAnimationOptions } from '../modal-interface';
+
+import { createSheetLeaveAnimation } from './sheet';
+
+const createLeaveAnimation = () => {
+  const backdropAnimation = createAnimation().fromTo('opacity', 'var(--backdrop-opacity)', 0);
+
+  const wrapperAnimation = createAnimation().keyframes([
+    { offset: 0, opacity: 0.99, transform: `translateY(0px)` },
+    { offset: 1, opacity: 0, transform: 'translateY(40px)' },
+  ]);
+
+  return { backdropAnimation, wrapperAnimation };
+};
 
 /**
  * Md Modal Leave Animation
  */
-export default function mdLeaveAnimation(Animation: Animation, baseEl: HTMLElement): Promise<Animation> {
-  const baseAnimation = new Animation();
+export const mdLeaveAnimation = (baseEl: HTMLElement, opts: ModalAnimationOptions): Animation => {
+  const { currentBreakpoint } = opts;
+  const root = getElementRoot(baseEl);
+  const { wrapperAnimation, backdropAnimation } =
+    currentBreakpoint !== undefined ? createSheetLeaveAnimation(opts) : createLeaveAnimation();
 
-  const backdropAnimation = new Animation();
-  backdropAnimation.addElement(baseEl.querySelector('ion-backdrop'));
+  backdropAnimation.addElement(root.querySelector('ion-backdrop')!);
+  wrapperAnimation.addElement(root.querySelector('.modal-wrapper')!);
 
-  const wrapperAnimation = new Animation();
-  const wrapperEl = baseEl.querySelector('.modal-wrapper');
-  wrapperAnimation.addElement(wrapperEl);
-
-  wrapperAnimation
-    .fromTo('opacity', 0.99, 0)
-    .fromTo('translateY', '0px', '40px');
-
-  backdropAnimation.fromTo('opacity', 0.4, 0.0);
-
-  return Promise.resolve(baseAnimation
-    .addElement(baseEl)
+  return createAnimation()
     .easing('cubic-bezier(0.47,0,0.745,0.715)')
     .duration(200)
-    .add(backdropAnimation)
-    .add(wrapperAnimation));
-}
+    .addAnimation([backdropAnimation, wrapperAnimation]);
+};

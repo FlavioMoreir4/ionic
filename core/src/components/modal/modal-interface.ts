@@ -1,12 +1,47 @@
-import { AnimationBuilder, ComponentProps, ComponentRef, FrameworkDelegate } from '../../interface';
+import type { AnimationBuilder, ComponentProps, ComponentRef, FrameworkDelegate, Mode } from '../../interface';
 
-export interface ModalOptions {
-  component: ComponentRef;
-  componentProps?: ComponentProps;
+export interface ModalOptions<T extends ComponentRef = ComponentRef> {
+  component: T;
+  componentProps?: ComponentProps<T>;
+  presentingElement?: HTMLElement;
   showBackdrop?: boolean;
-  enableBackdropDismiss?: boolean;
-  enterAnimation?: AnimationBuilder;
-  leaveAnimation?: AnimationBuilder;
+  backdropDismiss?: boolean;
   cssClass?: string | string[];
   delegate?: FrameworkDelegate;
+  animated?: boolean;
+  canDismiss?: boolean | ((data?: any, role?: string) => Promise<boolean>);
+  focusTrap?: boolean;
+
+  mode?: Mode;
+  keyboardClose?: boolean;
+  id?: string;
+  htmlAttributes?: { [key: string]: any };
+
+  enterAnimation?: AnimationBuilder;
+  leaveAnimation?: AnimationBuilder;
+
+  breakpoints?: number[];
+  initialBreakpoint?: number;
+  backdropBreakpoint?: number;
+  handle?: boolean;
+  handleBehavior?: ModalHandleBehavior;
 }
+
+export interface ModalAnimationOptions {
+  presentingEl?: HTMLElement;
+  currentBreakpoint?: number;
+  backdropBreakpoint?: number;
+}
+
+export interface ModalBreakpointChangeEventDetail {
+  breakpoint: number;
+}
+
+export interface ModalCustomEvent extends CustomEvent {
+  target: HTMLIonModalElement;
+}
+
+/**
+ * The behavior setting for modals when the handle is pressed.
+ */
+export type ModalHandleBehavior = 'none' | 'cycle';

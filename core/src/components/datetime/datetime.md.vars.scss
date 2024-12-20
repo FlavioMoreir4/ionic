@@ -1,24 +1,23 @@
-@import "../../themes/ionic.globals.md";
-
-@import "../item/item.md.vars";
-
-// Material Design Datetime
+// MD Datetime
 // --------------------------------------------------
 
-/// @prop - Padding top of the datetime
-$datetime-md-padding-top:         $item-md-padding-top !default;
+/// @prop - Font size for title in header
+$datetime-md-title-font-size:          dynamic-font(12px);
 
-/// @prop - Padding end of the datetime
-$datetime-md-padding-end:         ($item-md-padding-end / 2) !default;
+/// @prop - Font size for selected date in header
+$datetime-md-selected-date-font-size:  dynamic-font(34px);
 
-/// @prop - Padding bottom of the datetime
-$datetime-md-padding-bottom:      $item-md-padding-bottom !default;
+/// @prop - Font size for calendar day button
+$datetime-md-calendar-item-font-size:  dynamic-font(14px);
 
-/// @prop - Padding start of the datetime
-$datetime-md-padding-start:       $item-md-padding-start !default;
+/// @prop - Padding for content in header
+$datetime-md-header-padding:           20px;
 
-/// @prop - Font family of the datetime
-$datetime-md-font-family:         $font-family-md-base !default;
+/// @prop - Padding for content
+$datetime-md-padding:                  16px;
 
-/// @prop - Color of the datetime placeholder
-$datetime-md-placeholder-color:   $placeholder-text-md-color !default;
+/// @prop - Width of the calendar day
+$datetime-md-day-width: 42px;
+
+/// @prop - Height of the calendar day
+$datetime-md-day-height: $datetime-md-day-width;

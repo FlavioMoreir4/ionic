@@ -1,11 +1,107 @@
-// Appearance
-// --------------------------------------------------
 
-@mixin appearance($val) {
-  -moz-appearance: $val;
-  -ms-appearance: $val;
-  -webkit-appearance: $val;
-  appearance: $val;
+/**
+ * A heuristic that applies CSS to tablet
+ * viewports.
+ *
+ * Usage:
+ * @include tablet-viewport() {
+ *   :host {
+ *     background-color: green;
+ *   }
+ * }
+ */
+@mixin tablet-viewport() {
+  @media screen and (min-width: 768px) {
+    @content;
+  }
+}
+
+/**
+ * A heuristic that applies CSS to mobile
+ * viewports (i.e. phones, not tablets).
+ *
+ * Usage:
+ * @include mobile-viewport() {
+ *   :host {
+ *     background-color: blue;
+ *   }
+ * }
+ */
+@mixin mobile-viewport() {
+  @media screen and (max-width: 767px) {
+    @content;
+  }
+}
+
+@mixin input-cover() {
+  @include position(0, null, null, 0);
+  @include margin(0);
+
+  position: absolute;
+
+  width: 100%;
+  height: 100%;
+
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+
+  appearance: none;
+  outline: none;
+
+  &::-moz-focus-inner {
+    border: 0;
+  }
+}
+
+@mixin visually-hidden() {
+  position: absolute;
+
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  width: 100%;
+  height: 100%;
+
+  margin: 0;
+  padding: 0;
+
+  border: 0;
+  outline: 0;
+  clip: rect(0 0 0 0);
+
+  opacity: 0;
+  overflow: hidden;
+
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+@mixin text-inherit() {
+  font-family: inherit;
+  font-size: inherit;
+  font-style: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-decoration: inherit;
+  text-indent: inherit;
+  text-overflow: inherit;
+  text-transform: inherit;
+  text-align: inherit;
+  white-space: inherit;
+  color: inherit;
+}
+
+@mixin button-state() {
+  @include position(0, 0, 0, 0);
+
+  position: absolute;
+
+  content: "";
+
+  opacity: 0;
 }
 
 // Font smoothing
@@ -16,63 +112,11 @@
   -webkit-font-smoothing: antialiased;
 }
 
-// Input Placeholder
-// --------------------------------------------------
+// Get the key from a map based on the index
+@function index-to-key($map, $index) {
+  $keys: map-keys($map);
 
-@mixin placeholder($color: #999, $text-indent: 0, $opacity: null) {
-  &::-moz-placeholder { // Firefox 19+
-    color: $color;
-    @if ($opacity) {
-      opacity: $opacity;
-    }
-  }
-
-  &:-ms-input-placeholder {
-    color: $color;
-    @if ($opacity) {
-      opacity: $opacity;
-    }
-  }
-
-  &::-webkit-input-placeholder {
-    // Safari placeholder margin issue
-    text-indent: $text-indent;
-    color: $color;
-    @if ($opacity) {
-      opacity: $opacity;
-    }
-  }
-}
-
-
-// Check that the given map values are in ascending order
-// ---------------------------------------------------------------------------------
-
-@mixin assert-ascending($map, $map-name) {
-  $prev-key: null;
-  $prev-num: null;
-  @each $key, $num in $map {
-    @if $prev-num == null {
-      // Do nothing
-    } @else if not comparable($prev-num, $num) {
-      @warn "Potentially invalid value for #{$map-name}: This map must be in ascending order, but key '#{$key}' has value #{$num} whose unit makes it incomparable to #{$prev-num}, the value of the previous key '#{$prev-key}' !";
-    } @else if $prev-num >= $num {
-      @warn "Invalid value for #{$map-name}: This map must be in ascending order, but key '#{$key}' has value #{$num} which isn't greater than #{$prev-num}, the value of the previous key '#{$prev-key}' !";
-    }
-    $prev-key: $key;
-    $prev-num: $num;
-  }
-}
-
-// Check that the first value in the given map starts at 0
-// ---------------------------------------------------------------------------------
-
-@mixin assert-starts-at-zero($map, $map-name) {
-  $values: map-values($map);
-  $first-value: nth($values, 1);
-  @if $first-value != 0 {
-    @warn "First value in `#{$map-name}` must start at 0, but starts at #{$first-value}.";
-  }
+  @return nth($keys, $index);
 }
 
 
@@ -85,7 +129,7 @@
 //
 //    (xs: 0, sm: 576px, md: 768px, lg: 992px, xl: 1200px)
 //
-// The map defined in the `$grid-breakpoints` global variable is used as the `$breakpoints` argument by default.
+// The map defined in the `$screen-breakpoints` global variable is used as the `$breakpoints` argument by default.
 
 // ---------------------------------------------------------------------------------
 
@@ -93,9 +137,10 @@
 //
 //    >> breakpoint-min(sm, (xs: 0, sm: 576px, md: 768px, lg: 992px, xl: 1200px))
 //    576px
-@function breakpoint-min($name, $breakpoints: $grid-breakpoints) {
+@function breakpoint-min($name, $breakpoints: $screen-breakpoints) {
   $min: map-get($breakpoints, $name);
-  @return if($min != 0, $min, null);
+
+  @return if($name != index-to-key($breakpoints, 1), $min, null);
 }
 
 // Returns a blank string if smallest breakpoint, otherwise returns the name with a dash infront.
@@ -105,13 +150,13 @@
 //    ""  (Returns a blank string)
 //    >> breakpoint-infix(sm, (xs: 0, sm: 576px, md: 768px, lg: 992px, xl: 1200px))
 //    "-sm"
-@function breakpoint-infix($name, $breakpoints: $grid-breakpoints) {
+@function breakpoint-infix($name, $breakpoints: $screen-breakpoints) {
   @return if(breakpoint-min($name, $breakpoints) == null, "", "-#{$name}");
 }
 
 // Media of at least the minimum breakpoint width. No query for the smallest breakpoint.
 // Makes the @content apply to the given breakpoint and wider.
-@mixin media-breakpoint-up($name, $breakpoints: $grid-breakpoints) {
+@mixin media-breakpoint-up($name, $breakpoints: $screen-breakpoints) {
   $min: breakpoint-min($name, $breakpoints);
   @if $min {
     @media (min-width: $min) {
@@ -130,24 +175,29 @@
 //    md
 //    >> breakpoint-next(sm, $breakpoint-names: (xs sm md lg xl))
 //    md
-@function breakpoint-next($name, $breakpoints: $grid-breakpoints, $breakpoint-names: map-keys($breakpoints)) {
+@function breakpoint-next($name, $breakpoints: $screen-breakpoints, $breakpoint-names: map-keys($breakpoints)) {
   $n: index($breakpoint-names, $name);
   @return if($n < length($breakpoint-names), nth($breakpoint-names, $n + 1), null);
 }
 
-// Maximum breakpoint width. Null for the largest (last) breakpoint.
-// The maximum value is calculated as the minimum of the next one less 0.1.
+// Maximum breakpoint width. Null for the smallest (first) breakpoint.
+// The maximum value is reduced by 0.02px to work around the limitations of
+// `min-` and `max-` prefixes and viewports with fractional widths.
 //
-//    >> breakpoint-max(sm, (xs: 0, sm: 576px, md: 768px, lg: 992px, xl: 1200px))
-//    767px
-@function breakpoint-max($name, $breakpoints: $grid-breakpoints) {
-  $next: breakpoint-next($name, $breakpoints);
-  @return if($next, breakpoint-min($next, $breakpoints) - 1px, null);
+// See https://www.w3.org/TR/mediaqueries-4/#mq-min-max
+// Uses 0.02px rather than 0.01px to work around a current rounding bug in Safari.	// Uses 0.02px rather than 0.01px to work around a current rounding bug in Safari.
+// See https://bugs.webkit.org/show_bug.cgi?id=178261	// See https://bugs.webkit.org/show_bug.cgi?id=178261
+//
+//    >> breakpoint-max(md, (xs: 0, sm: 576px, md: 768px, lg: 992px, xl: 1200px))
+//    767.98px
+@function breakpoint-max($name, $breakpoints: $screen-breakpoints) {
+  $max: map-get($breakpoints, $name);
+  @return if($max and $max > 0, $max - .02, null);
 }
 
 // Media of at most the maximum breakpoint width. No query for the largest breakpoint.
 // Makes the @content apply to the given breakpoint and narrower.
-@mixin media-breakpoint-down($name, $breakpoints: $grid-breakpoints) {
+@mixin media-breakpoint-down($name, $breakpoints: $screen-breakpoints) {
   $max: breakpoint-max($name, $breakpoints);
   @if $max {
     @media (max-width: $max) {
@@ -158,58 +208,90 @@
   }
 }
 
+
+// Text Direction - ltr / rtl
+//
+// CSS defaults to use the ltr css, and adds [dir=rtl] selectors
+// to override ltr defaults.
+// ----------------------------------------------------------
+
 @mixin multi-dir() {
-  @if $app-direction == multi {
-    $root: #{&};
-    @at-root [dir] {
-      #{$root} {
-        @content;
-      }
-    }
-  } @else {
-    @content;
-  }
+  @content;
+
+  // $root: #{&};
+  // @at-root [dir] {
+  //   #{$root} {
+  //     @content;
+  //   }
+  // }
 }
 
 @mixin rtl() {
-  @if $app-direction == multi {
-    $root: #{&};
-    @at-root [dir="rtl"] {
-      #{$root} {
-        @content;
-      }
+  $root: #{&};
+
+  $rootSplit: str-split($root, ",");
+  $selectors: #{add-root-selector($root, "[dir=rtl]")};
+  $selectorsSplit: str-split($selectors, ",");
+
+  $hostContextSelectors: ();
+  $restSelectors: ();
+  $dirSelectors: ();
+
+  // Selectors must be split into individual selectors in case the browser
+  // doesn't support a specific selector.
+  // For example, Firefox and Safari doesn't support `:host-context()`.
+  // If an invalid selector is used, then the entire group of selectors
+  // will be ignored.
+  // @link https://www.w3.org/TR/selectors-3/#grouping
+  @each $selector in $selectorsSplit {
+    // Group the selectors back into a single selector to optimize the output.
+    @if str-index($selector, ":host-context") {
+      $hostContextSelectors: append($hostContextSelectors, $selector, comma);
+    } @else {
+      // Group the selectors back into a single selector to optimize the output.
+      $restSelectors: append($restSelectors, $selector, comma);
     }
-  } @else if $app-direction == rtl {
-    @content;
+  }
+
+  // Supported by Chrome.
+  @if length($hostContextSelectors) > 0 {
+    @at-root #{$hostContextSelectors} {
+      @content;
+    }
+  }
+
+  // Supported by all browsers.
+  @if length($restSelectors) > 0 {
+    @at-root #{$restSelectors} {
+      @content;
+    }
+  }
+
+  // If browser can support `:dir()`, then add the `:dir()` selectors.
+  @supports selector(:dir(rtl)) {
+    // Adding :dir() in case the browser doesn't support `:host-context()` and does support `:dir()`.
+    // `:host-context()` is added:
+    // - through the `add-root-selector()` function.
+    // - first so that it takes precedence over `:dir()`.
+    // For example,
+    // - Firefox doesn't support `:host-context()`, but does support `:dir()`.
+    // - Safari doesn't support `:host-context()`, but Safari 16.4+ supports `:dir()`
+    // @link https://webkit.org/blog/13966/webkit-features-in-safari-16-4/
+    // -- However, there is a Webkit bug on v16 that prevents `:dir()` from working when
+    // -- the app direction is changed dynamically. v17+ works fine.
+    // -- @link https://bugs.webkit.org/show_bug.cgi?id=257133
+
+    // Supported by Firefox.
+    @at-root #{add-root-selector($root, ":dir(rtl)", false)} {
+      @content;
+    }
   }
 }
 
 @mixin ltr() {
-  @if $app-direction == multi {
-    $root: #{&};
-    @at-root [dir="ltr"] {
-      #{$root} {
-        @content;
-      }
-    }
-  } @else if $app-direction == ltr {
-    @content;
-  }
+  @content;
 }
 
-// If deprecated variable exists, use it, otherwise, use alternative
-// @param {string} $property - property to default
-// @param {string} $variable-name - the deprecated variable's name
-// @param {string} $variable - the deprecated variable
-// ----------------------------------------------------------
-@mixin deprecated-variable($property, $variable-name, $variable) {
-  @if $variable == null {
-    @content;
-  } @else {
-    @warn "you are using a deprecated variable: #{$variable-name}";
-    #{$property}: $variable;
-  }
-}
 
 // SVG Background Image Mixin
 // @param {string} $svg
@@ -244,20 +326,15 @@
 // @param {string} $end
 // ----------------------------------------------------------
 @mixin property-horizontal($prop, $start, $end: $start) {
-  @if $start == $end {
-    @include multi-dir() {
-      #{$prop}-left: $start;
-      #{$prop}-right: $end;
-    }
+  @if $start == 0 and $end == 0 {
+    #{$prop}-left: $start;
+    #{$prop}-right: $end;
+
   } @else {
-    @include ltr() {
-      #{$prop}-left: $start;
-      #{$prop}-right: $end;
-    }
-    @include rtl() {
-      #{$prop}-left: $end;
-      #{$prop}-right: $start;
-    }
+    -webkit-#{$prop}-start: $start;
+    #{$prop}-inline-start: $start;
+    -webkit-#{$prop}-end: $end;
+    #{$prop}-inline-end: $end;
   }
 }
 
@@ -270,32 +347,9 @@
 // @param {boolean} $content include content or use default
 // ----------------------------------------------------------
 @mixin property($prop, $top, $end: $top, $bottom: $top, $start: $end) {
-  @if $top == $end and $top == $bottom and $top == $start {
-    @include multi-dir() {
-      #{$prop}: $top;
-    }
-  } @else if $top == $bottom and $end == $start and $top != null and $end != null {
-    @include multi-dir() {
-      #{$prop}: $top $end;
-    }
-  } @else if $end == $start and $top != null and $end != null and $bottom != null {
-    @include multi-dir() {
-      #{$prop}: $top $end $bottom;
-    }
-  } @else if $top != null and $end != null and $bottom != null and $start != null {
-    @include ltr() {
-      #{$prop}: $top $end $bottom $start;
-    }
-    @include rtl() {
-      #{$prop}: $top $start $bottom $end;
-    }
-  } @else {
-    @include property-horizontal($prop, $start, $end);
-    @include multi-dir() {
-      #{$prop}-top: $top;
-      #{$prop}-bottom: $bottom;
-    }
-  }
+  @include property-horizontal($prop, $start, $end);
+  #{$prop}-top: $top;
+  #{$prop}-bottom: $bottom;
 }
 
 // Add padding horizontal
@@ -345,13 +399,11 @@
       right: $end;
     }
   } @else {
-    @include ltr() {
-      left: $start;
-      right: $end;
-    }
-    @include rtl() {
-      left: $end;
-      right: $start;
+    @at-root {
+      & {
+        inset-inline-start: $start;
+        inset-inline-end: $end;
+      }
     }
   }
 }
@@ -368,6 +420,16 @@
   bottom: $bottom;
 }
 
+// Add border for all directions
+// @param {string} $top
+// @param {string} $end
+// @param {string} $bottom
+// @param {string} $start
+// ----------------------------------------------------------
+@mixin border($top, $end: $top, $bottom: $top, $start: $end) {
+  @include property(border, $top, $end, $bottom, $start);
+}
+
 // Add border radius for all directions
 // @param {string} $top-start
 // @param {string} $top-end
@@ -376,39 +438,12 @@
 // ----------------------------------------------------------
 @mixin border-radius($top-start, $top-end: $top-start, $bottom-end: $top-start, $bottom-start: $top-end) {
   @if $top-start == $top-end and $top-start == $bottom-end and $top-start == $bottom-start {
-    @include multi-dir() {
-      border-radius: $top-start;
-    }
+    border-radius: $top-start;
   } @else {
-    @include ltr() {
-      border-top-left-radius: $top-start;
-      border-top-right-radius: $top-end;
-      border-bottom-right-radius: $bottom-end;
-      border-bottom-left-radius: $bottom-start;
-    }
-
-    @include rtl() {
-      border-top-left-radius: $top-end;
-      border-top-right-radius: $top-start;
-      border-bottom-right-radius: $bottom-start;
-      border-bottom-left-radius: $bottom-end;
-    }
-  }
-}
-
-// Sets correct text align with support for old browsers
-// @param {string} $direction - text direction
-// @param {string} $decorator - !important
-// ----------------------------------------------------------
-@mixin text-align($direction, $decorator: null) {
-  @if $direction == start {
-    text-align: left;
-    text-align: start $decorator;
-  } @else if $direction == end {
-    text-align: right;
-    text-align: end $decorator;
-  } @else {
-    text-align: $direction $decorator;
+    border-start-start-radius: $top-start;
+    border-start-end-radius: $top-end;
+    border-end-end-radius: $bottom-end;
+    border-end-start-radius: $bottom-start;
   }
 }
 
@@ -554,198 +589,4 @@
       transform: $rtl-translate $extra;
     }
   }
-}
-
-
-// Add safe-area-padding for all directions
-// @param {string} $top
-// @param {string} $end
-// @param {string} $bottom
-// @param {string} $start
-// ----------------------------------------------------------
-@mixin safe-area-padding($top, $end: $top, $bottom: $top, $start: $end) {
-  // two groups for older constant and newer env
-  $safe-area-top: null;
-  $safe-area-start: null;
-  $safe-area-bottom: null;
-  $safe-area-end: null;
-
-  $safe-area-top-env: null;
-  $safe-area-start-env: null;
-  $safe-area-bottom-env: null;
-  $safe-area-end-env: null;
-
-  @if ($start) {
-    $safe-area-start: unquote("calc(constant(safe-area-inset-left) + #{$start})");
-    $safe-area-start-env: unquote("calc(env(safe-area-inset-left) + #{$start})");
-  }
-  @if ($end) {
-    $safe-area-end: unquote("calc(constant(safe-area-inset-right) + #{$end})");
-    $safe-area-end-env: unquote("calc(env(safe-area-inset-right) + #{$end})");
-  }
-  @if ($top){
-    $safe-area-top: unquote("calc(constant(safe-area-inset-top) + #{$top})");
-    $safe-area-top-env: unquote("calc(env(safe-area-inset-top) + #{$top})");
-  }
-  @if ($bottom){
-    $safe-area-bottom: unquote("calc(constant(safe-area-inset-bottom) + #{$bottom})");
-    $safe-area-bottom-env: unquote("calc(env(safe-area-inset-bottom) + #{$bottom})");
-  }
-
-  @include padding($safe-area-top, $safe-area-end, $safe-area-bottom, $safe-area-start);
-  @include padding($safe-area-top-env, $safe-area-end-env, $safe-area-bottom-env, $safe-area-start-env);
-
-}
-
-// Add safe area padding horizontal
-// @param {string} $start
-// @param {string} $end
-// ----------------------------------------------------------
-@mixin safe-area-padding-horizontal($start, $end: $start) {
-  $safe-area-end: null;
-  $safe-area-start: null;
-  $safe-area-start-env: null;
-  $safe-area-end-env: null;
-
-  @if ($end) {
-    $safe-area-end: unquote("calc(constant(safe-area-inset-right) + #{$end})");
-    $safe-area-end-env: unquote("calc(env(safe-area-inset-right) + #{$end})");
-  }
-  @if ($start) {
-    $safe-area-start: unquote("calc(constant(safe-area-inset-left) + #{$start})");
-    $safe-area-start-env: unquote("calc(env(safe-area-inset-left) + #{$start})");
-  }
-
-  @include padding-horizontal($safe-area-start, $safe-area-end);
-  @include padding-horizontal($safe-area-start-env, $safe-area-end-env);
-}
-
-
-// Add safe position horizontal
-// @param {string} $start - amount to position start
-// @param {string} $end - amount to left: 0; end
-// ----------------------------------------------------------
-@mixin safe-position-horizontal($start: null, $end: null){
-  $safe-area-start: null;
-  $safe-area-end: null;
-  $safe-area-start-env: null;
-  $safe-area-end-env: null;
-  @if ($start) {
-    $safe-area-start: unquote("calc(constant(safe-area-inset-left) + #{$start})");
-    $safe-area-start-env: unquote("calc(env(safe-area-inset-left) + #{$start})");
-  }
-  @if ($end) {
-    $safe-area-end: unquote("calc(constant(safe-area-inset-right) + #{$end})");
-    $safe-area-end-env: unquote("calc(env(safe-area-inset-right) + #{$end})");
-  }
-
-  @if $safe-area-start == $safe-area-end {
-    @include multi-dir() {
-      left: $safe-area-start;
-      right: $safe-area-end;
-    }
-    @include multi-dir() {
-      left: $safe-area-start-env;
-      right: $safe-area-end-env;
-    }
-  } @else {
-    @include ltr() {
-      left: $safe-area-start;
-      right: $safe-area-end;
-    }
-    @include ltr() {
-      left: $safe-area-start-env;
-      right: $safe-area-end-env;
-    }
-    @include rtl() {
-      left: $safe-area-end;
-      right: $safe-area-start;
-    }
-    @include rtl() {
-      left: $safe-area-end-env;
-      right: $safe-area-start-env;
-    }
-  }
-}
-
-
-// Add generic safe area sizing
-// @param {string} $prop - css property you want to set
-// @param {string} $safe-area-position - short safe-area-inset value you want to modify
-// @param {string} $value - additional value you want to modify, if none, pass 0px
-// ----------------------------------------------------------
-@mixin safe-area-sizing($prop, $safe-area-position, $value){
-  #{$prop}: unquote("calc(#{$value} + constant(#{$safe-area-position}))");
-  #{$prop}: unquote("calc(#{$value} + env(#{$safe-area-position}))");
-}
-
-
-// Add safe area padding and sizing to the footer area
-// @param {string} $toolbar-height - height of the toolbar
-// @param {string} $toolbar-padding - padding of the toolbar
-// @param {string} $tabs-height - height of the tabs
-// ----------------------------------------------------------
-@mixin footer-safe-area($toolbar-height, $toolbar-padding, $tabs-height) {
-  ion-tabs ion-tabbar:not(.placement-top) {
-    @include safe-area-padding(null, null, 0, null);
-    @include safe-area-sizing(height, safe-area-inset-bottom, $tabs-height)
-  }
-
-  ion-footer .toolbar:last-child {
-    @include safe-area-padding(null, null, $toolbar-padding, null);
-    @include safe-area-sizing(min-height, safe-area-inset-bottom, $toolbar-height)
-  }
-}
-
-
-// Add padding to the toolbar to account for the statusbar
-// @param {string} $toolbar-height - height of the toolbar
-// @param {string} $toolbar-padding - padding of the toolbar
-// @param {string} $content-padding - padding of the content
-// @param {string} $statusbar-padding - padding of the statusbar
-// --------------------------------------------------------------------------------
-@mixin toolbar-statusbar-padding($toolbar-height, $toolbar-padding, $content-padding, $statusbar-padding) {
-
-  .statusbar-padding {
-    > .toolbar:first-child {
-      @include padding(calc(#{$statusbar-padding} + #{$toolbar-padding}), null, null, null);
-      @include safe-area-padding($toolbar-padding, null, null, null);
-
-      min-height: calc(#{$toolbar-height} + #{$statusbar-padding});
-      @include safe-area-sizing(min-height, safe-area-inset-top, $toolbar-height);
-    }
-  }
-
-}
-
-
-// Add padding to the toolbar to account for the statusbar
-// @param {string} $toolbar-height - height of the toolbar
-// @param {string} $toolbar-padding - padding of the toolbar
-// @param {string} $content-padding - padding of the content
-// @param {string} $statusbar-padding - padding of the statusbar
-//
-// iOS is the only mode that uses this mixin and it should be removed with #5036
-// --------------------------------------------------------------------------------
-@mixin toolbar-title-statusbar-padding($toolbar-height, $toolbar-padding, $content-padding, $statusbar-padding) {
-
-  .statusbar-padding {
-    > .toolbar:first-child ion-segment,
-    > .toolbar:first-child ion-title {
-      @include padding($statusbar-padding, null, null, null);
-      @include safe-area-padding(0px, null, null, null);
-
-      height: calc(#{$toolbar-height} + #{$statusbar-padding});
-      @include safe-area-sizing(height, safe-area-inset-top, $toolbar-height);
-
-      min-height: calc(#{$toolbar-height} + #{$statusbar-padding});
-      @include safe-area-sizing(min-height, safe-area-inset-top, $toolbar-height)
-    }
-
-    > ion-content:first-child ion-scroll {
-      @include padding($statusbar-padding, null, null, null);
-      @include safe-area-padding(0px, null, null, null);
-    }
-  }
-
 }

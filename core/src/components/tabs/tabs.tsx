@@ -1,120 +1,85 @@
-import { Build, Component, Element, Event, EventEmitter, Listen, Method, Prop, State } from '@stencil/core';
-import { Config, NavOutlet, RouteID, RouteWrite, RouterDirection } from '../../interface';
-import { TabbarLayout, TabbarPlacement } from '../tabbar/tabbar';
+import type { EventEmitter } from '@stencil/core';
+import { Component, Element, Event, Host, Method, Prop, State, h } from '@stencil/core';
 
+import type { NavOutlet, RouteID, RouteWrite } from '../router/utils/interface';
+import type { TabButtonClickEventDetail } from '../tab-bar/tab-bar-interface';
 
+/**
+ * @slot - Content is placed between the named slots if provided without a slot.
+ * @slot top - Content is placed at the top of the screen.
+ * @slot bottom - Content is placed at the bottom of the screen.
+ */
 @Component({
   tag: 'ion-tabs',
-  styleUrl: 'tabs.scss'
+  styleUrl: 'tabs.scss',
+  shadow: true,
 })
 export class Tabs implements NavOutlet {
-
-  private ids = -1;
   private transitioning = false;
-  private tabsId = (++tabIds);
   private leavingTab?: HTMLIonTabElement;
 
-  @Element() el!: HTMLElement;
+  @Element() el!: HTMLIonTabsElement;
 
-  @State() tabs: HTMLIonTabElement[] = [];
   @State() selectedTab?: HTMLIonTabElement;
 
-  @Prop({ context: 'config' }) config!: Config;
-  @Prop({ context: 'document' }) doc!: Document;
-
-  /**
-   * The color to use from your Sass `$colors` map.
-   * Default options are: `"primary"`, `"secondary"`, `"tertiary"`, `"success"`, `"warning"`, `"danger"`, `"light"`, `"medium"`, and `"dark"`.
-   * For more information, see [Theming your App](/docs/theming/theming-your-app).
-   */
-  @Prop() color!: string;
-
-  /**
-   * A unique name for the tabs
-   */
-  @Prop() name?: string;
-
-  /**
-   * If true, the tabbar
-   */
-  @Prop() tabbarHidden = false;
-
-  /**
-   * Set the tabbar layout: `icon-top`, `icon-start`, `icon-end`, `icon-bottom`, `icon-hide`, `title-hide`.
-   */
-  @Prop({ mutable: true }) tabbarLayout?: TabbarLayout;
-
-  /**
-   * Set position of the tabbar: `top`, `bottom`.
-   */
-  @Prop({ mutable: true }) tabbarPlacement?: TabbarPlacement;
-
-  /**
-   * If true, show the tab highlight bar under the selected tab.
-   */
-  @Prop({ mutable: true }) tabbarHighlight?: boolean;
-
-  /**
-   * If true, the tabs will be translucent.
-   * Note: In order to scroll content behind the tabs, the `fullscreen`
-   * attribute needs to be set on the content.
-   * Defaults to `false`.
-   */
-  @Prop() translucent = false;
-
-  @Prop() scrollable = false;
-
+  /** @internal */
   @Prop({ mutable: true }) useRouter = false;
 
   /**
-   * Emitted when the tab changes.
+   * Emitted when the navigation will load a component.
+   * @internal
    */
-  @Event() ionChange!: EventEmitter<{tab: HTMLIonTabElement}>;
   @Event() ionNavWillLoad!: EventEmitter<void>;
-  @Event() ionNavWillChange!: EventEmitter<void>;
-  @Event() ionNavDidChange!: EventEmitter<void>;
 
-  componentWillLoad() {
+  /**
+   * Emitted when the navigation is about to transition to a new component.
+   */
+  @Event({ bubbles: false }) ionTabsWillChange!: EventEmitter<{ tab: string }>;
+
+  /**
+   * Emitted when the navigation has finished transitioning to a new component.
+   */
+  @Event({ bubbles: false }) ionTabsDidChange!: EventEmitter<{ tab: string }>;
+
+  async componentWillLoad() {
     if (!this.useRouter) {
-      this.useRouter = !!this.doc.querySelector('ion-router') && !this.el.closest('[no-router]');
+      /**
+       * JavaScript and StencilJS use `ion-router`, while
+       * the other frameworks use `ion-router-outlet`.
+       *
+       * If either component is present then tabs will not use
+       * a basic tab-based navigation. It will use the history
+       * stack or URL updates associated with the router.
+       */
+      this.useRouter =
+        (!!this.el.querySelector('ion-router-outlet') || !!document.querySelector('ion-router')) &&
+        !this.el.closest('[no-router]');
     }
-
-    this.loadConfig('tabbarLayout', 'bottom');
-    this.loadConfig('tabbarLayout', 'icon-top');
-    this.loadConfig('tabbarHighlight', false);
-
+    if (!this.useRouter) {
+      const tabs = this.tabs;
+      if (tabs.length > 0) {
+        await this.select(tabs[0]);
+      }
+    }
     this.ionNavWillLoad.emit();
   }
 
-  async componentDidLoad() {
-    await this.initTabs();
-    await this.initSelect();
-  }
-
-  componentDidUnload() {
-    this.tabs.length = 0;
-    this.selectedTab = this.leavingTab = undefined;
-  }
-
-  @Listen('ionTabbarClick')
-  protected tabChange(ev: CustomEvent<HTMLIonTabElement>) {
-    const selectedTab = ev.detail;
-    if (this.useRouter && selectedTab.href != null) {
-      const router = this.doc.querySelector('ion-router');
-      if (router) {
-        router.push(selectedTab.href);
-      }
-      return;
+  componentWillRender() {
+    const tabBar = this.el.querySelector('ion-tab-bar');
+    if (tabBar) {
+      const tab = this.selectedTab ? this.selectedTab.tab : undefined;
+      tabBar.selectedTab = tab;
     }
-    this.select(selectedTab);
   }
 
   /**
-   * @param {number|Tab} tabOrIndex Index, or the Tab instance, of the tab to select.
+   * Select a tab by the value of its `tab` property or an element reference. This method is only available for vanilla JavaScript projects. The Angular, React, and Vue implementations of tabs are coupled to each framework's router.
+   *
+   * @param tab The tab instance to select. If passed a string, it should be the value of the tab's `tab` property.
    */
   @Method()
-  async select(tabOrIndex: number | HTMLIonTabElement): Promise<boolean> {
-    const selectedTab = this.getTab(tabOrIndex);
+  async select(tab: string | HTMLIonTabElement): Promise<boolean> {
+    const selectedTab = getTab(this.tabs, tab);
     if (!this.shouldSwitch(selectedTab)) {
       return false;
     }
@@ -125,11 +90,30 @@ export class Tabs implements NavOutlet {
     return true;
   }
 
+  /**
+   * Get a specific tab by the value of its `tab` property or an element reference. This method is only available for vanilla JavaScript projects. The Angular, React, and Vue implementations of tabs are coupled to each framework's router.
+   *
+   * @param tab The tab instance to select. If passed a string, it should be the value of the tab's `tab` property.
+   */
+  @Method()
+  async getTab(tab: string | HTMLIonTabElement): Promise<HTMLIonTabElement | undefined> {
+    return getTab(this.tabs, tab);
+  }
+
+  /**
+   * Get the currently selected tab. This method is only available for vanilla JavaScript projects. The Angular, React, and Vue implementations of tabs are coupled to each framework's router.
+   */
+  @Method()
+  getSelected(): Promise<string | undefined> {
+    return Promise.resolve(this.selectedTab ? this.selectedTab.tab : undefined);
+  }
+
+  /** @internal */
   @Method()
   async setRouteId(id: string): Promise<RouteWrite> {
-    const selectedTab = this.getTab(id);
+    const selectedTab = getTab(this.tabs, id);
     if (!this.shouldSwitch(selectedTab)) {
-      return {changed: false, element: this.selectedTab};
+      return { changed: false, element: this.selectedTab };
     }
 
     await this.setActive(selectedTab);
@@ -140,79 +124,11 @@ export class Tabs implements NavOutlet {
     };
   }
 
+  /** @internal */
   @Method()
-  getRouteId(): RouteID|undefined {
-    const id = this.selectedTab && this.selectedTab.getTabId();
-    return id ? {id, element: this.selectedTab} : undefined;
-  }
-
-  @Method()
-  getTab(tabOrIndex: string | number | HTMLIonTabElement): HTMLIonTabElement|undefined {
-    if (typeof tabOrIndex === 'string') {
-      return this.tabs.find(tab => tab.getTabId() === tabOrIndex);
-    }
-    if (typeof tabOrIndex === 'number') {
-      return this.tabs[tabOrIndex];
-    }
-    return tabOrIndex;
-  }
-
-  /**
-   * @return {HTMLIonTabElement} Returns the currently selected tab
-   */
-  @Method()
-  getSelected(): HTMLIonTabElement | undefined {
-    return this.selectedTab;
-  }
-
-  private initTabs() {
-    const tabs = this.tabs = Array.from(this.el.querySelectorAll('ion-tab'));
-    const tabPromises = tabs.map(tab => {
-      const id = `t-${this.tabsId}-${++this.ids}`;
-      tab.btnId = 'tab-' + id;
-      tab.id = 'tabpanel-' + id;
-      return tab.componentOnReady();
-    });
-
-    return Promise.all(tabPromises);
-  }
-
-  private async initSelect(): Promise<void> {
-    if (this.useRouter) {
-      if (Build.isDev) {
-        const selectedTab = this.tabs.find(t => t.selected);
-        if (selectedTab) {
-          console.warn('When using a router (ion-router) <ion-tab selected="true"> makes no difference' +
-          'Define routes properly the define which tab is selected');
-        }
-      }
-      return;
-    }
-    // find pre-selected tabs
-    const selectedTab = this.tabs.find(t => t.selected) ||
-      this.tabs.find(t => t.show && !t.disabled);
-
-    // reset all tabs none is selected
-    for (const tab of this.tabs) {
-      if (tab !== selectedTab) {
-        tab.selected = false;
-      }
-    }
-    if (selectedTab) {
-      await selectedTab.setActive();
-    }
-    this.selectedTab = selectedTab;
-    if (selectedTab) {
-      selectedTab.selected = true;
-      selectedTab.active = true;
-    }
-  }
-
-  private loadConfig(attrKey: string, fallback: any) {
-    const val = (this as any)[attrKey];
-    if (typeof val === 'undefined') {
-      (this as any)[attrKey] = this.config.get(attrKey, fallback);
-    }
+  async getRouteId(): Promise<RouteID | undefined> {
+    const tabId = this.selectedTab?.tab;
+    return tabId !== undefined ? { id: tabId, element: this.selectedTab } : undefined;
   }
 
   private setActive(selectedTab: HTMLIonTabElement): Promise<void> {
@@ -220,22 +136,12 @@ export class Tabs implements NavOutlet {
       return Promise.reject('transitioning already happening');
     }
 
-    if (!selectedTab) {
-      return Promise.reject('no tab is selected');
-    }
-
-    // Reset rest of tabs
-    for (const tab of this.tabs) {
-      if (selectedTab !== tab) {
-        tab.selected = false;
-      }
-    }
-
     this.transitioning = true;
     this.leavingTab = this.selectedTab;
     this.selectedTab = selectedTab;
-    this.ionNavWillChange.emit();
-    return selectedTab.setActive();
+    this.ionTabsWillChange.emit({ tab: selectedTab.tab });
+    selectedTab.active = true;
+    return Promise.resolve();
   }
 
   private tabSwitch() {
@@ -248,56 +154,63 @@ export class Tabs implements NavOutlet {
       return;
     }
 
-    selectedTab.selected = true;
     if (leavingTab !== selectedTab) {
       if (leavingTab) {
         leavingTab.active = false;
       }
-      this.ionChange.emit({tab: selectedTab});
-      this.ionNavDidChange.emit();
+      this.ionTabsDidChange.emit({ tab: selectedTab.tab });
     }
   }
 
   private notifyRouter() {
     if (this.useRouter) {
-      const router = this.doc.querySelector('ion-router');
+      const router = document.querySelector('ion-router');
       if (router) {
-        return router.navChanged(RouterDirection.Forward);
+        return router.navChanged('forward');
       }
     }
     return Promise.resolve(false);
   }
 
-  private shouldSwitch(selectedTab: HTMLIonTabElement|undefined): selectedTab is HTMLIonTabElement {
+  private shouldSwitch(selectedTab: HTMLIonTabElement | undefined): selectedTab is HTMLIonTabElement {
     const leavingTab = this.selectedTab;
-    return !!(selectedTab && selectedTab !== leavingTab && !this.transitioning);
+    return selectedTab !== undefined && selectedTab !== leavingTab && !this.transitioning;
   }
 
-  render() {
-    const dom = [
-      <div class="tabs-inner">
-        <slot></slot>
-      </div>
-    ];
+  private get tabs() {
+    return Array.from(this.el.querySelectorAll('ion-tab'));
+  }
 
-    if (!this.tabbarHidden) {
-      dom.push(
-        <ion-tabbar
-          tabs={this.tabs}
-          color={this.color}
-          selectedTab={this.selectedTab}
-          highlight={this.tabbarHighlight}
-          placement={this.tabbarPlacement}
-          layout={this.tabbarLayout}
-          translucent={this.translucent}
-          scrollable={this.scrollable}>
-        </ion-tabbar>
-      );
+  private onTabClicked = (ev: CustomEvent<TabButtonClickEventDetail>) => {
+    const { href, tab } = ev.detail;
+    if (this.useRouter && href !== undefined) {
+      const router = document.querySelector('ion-router');
+      if (router) {
+        router.push(href);
+      }
+    } else {
+      this.select(tab);
     }
-    return dom;
+  };
+
+  render() {
+    return (
+      <Host onIonTabButtonClick={this.onTabClicked}>
+        <slot name="top"></slot>
+        <div class="tabs-inner">
+          <slot></slot>
+        </div>
+        <slot name="bottom"></slot>
+      </Host>
+    );
   }
 }
 
-let tabIds = -1;
+const getTab = (tabs: HTMLIonTabElement[], tab: string | HTMLIonTabElement): HTMLIonTabElement | undefined => {
+  const tabEl = typeof tab === 'string' ? tabs.find((t) => t.tab === tab) : tab;
 
-
+  if (!tabEl) {
+    console.error(`tab with id: "${tabEl}" does not exist`);
+  }
+  return tabEl;
+};

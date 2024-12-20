@@ -4,36 +4,59 @@
 // Label
 // --------------------------------------------------
 
-ion-label {
-  @include margin(0);
+:host-context(.item) {
+  /**
+   * @prop --color: Color of the label. This property is only available when using `ion-label` inside of an `ion-item`.
+   */
+  --color: initial;
 
   display: block;
-  overflow: hidden;
 
-  flex: 1;
+  color: var(--color);
 
+  font-family: $font-family-base;
   font-size: inherit;
+
   text-overflow: ellipsis;
-  white-space: nowrap;
+
+  box-sizing: border-box;
 }
 
-.item-input ion-label {
-  flex: initial;
+:host(.ion-color) {
+  color: current-color(base);
+}
 
-  max-width: 200px;
+:host(.ion-text-nowrap) {
+  overflow: hidden;
+}
 
+:host-context(.item-interactive-disabled:not(.item-multiple-inputs)) {
+  cursor: default;
+  opacity: .3;
   pointer-events: none;
 }
 
-[text-wrap] ion-label {
-  white-space: normal;
+:host-context(.item-input) {
+  flex: initial;
+
+  max-width: 200px;
+  pointer-events: none;
 }
 
+:host-context(.item-textarea) {
+  align-self: baseline;
+}
 
-// Stacked & Floating Inputs
+// Overflow hidden is required for the proper
+// margins between skeleton text elements
+:host-context(.item-skeleton-text) {
+  overflow: hidden;
+}
+
+// Fixed Inputs
 // --------------------------------------------------
 
-.label-fixed {
+:host(.label-fixed) {
   flex: 0 0 100px;
 
   width: 100px;
@@ -41,28 +64,33 @@ ion-label {
   max-width: 200px;
 }
 
-.item-label-stacked ion-label,
-.item-label-floating ion-label {
+// Stacked & Floating Inputs
+// --------------------------------------------------
+
+:host(.label-stacked),
+:host(.label-floating) {
+  @include margin(null, null, 0, null);
+
   align-self: stretch;
 
   width: auto;
   max-width: 100%;
 }
 
-.label-stacked ,
-.label-floating {
-  @include margin(null, null, 0, null);
+:host(.label-no-animate.label-floating) {
+  transition: none;
 }
 
-.item-label-stacked .input-wrapper,
-.item-label-floating .input-wrapper {
-  flex: 1;
-  flex-direction: column;
-}
+// Headings
+// --------------------------------------------------
 
-.item-label-stacked ion-select,
-.item-label-floating ion-select {
-  align-self: stretch;
+::slotted(*) h1,
+::slotted(*) h2,
+::slotted(*) h3,
+::slotted(*) h4,
+::slotted(*) h5,
+::slotted(*) h6 {
+  text-overflow: inherit;
 
-  max-width: 100%;
+  overflow: inherit;
 }

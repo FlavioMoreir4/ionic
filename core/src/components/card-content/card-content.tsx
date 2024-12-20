@@ -1,27 +1,30 @@
-import { Component, Prop } from '@stencil/core';
-import { Mode } from '../../interface';
+import type { ComponentInterface } from '@stencil/core';
+import { Component, Host, h } from '@stencil/core';
 
+import { getIonMode } from '../../global/ionic-global';
+
+/**
+ * @virtualProp {"ios" | "md"} mode - The mode determines which platform styles to use.
+ */
 @Component({
   tag: 'ion-card-content',
   styleUrls: {
     ios: 'card-content.ios.scss',
-    md: 'card-content.md.scss'
+    md: 'card-content.md.scss',
   },
-  host: {
-    theme: 'card-content'
-  }
 })
-export class CardContent {
-  /**
-   * The color to use for the text.
-   * Default options are: `"primary"`, `"secondary"`, `"tertiary"`, `"success"`, `"warning"`, `"danger"`, `"light"`, `"medium"`, and `"dark"`.
-   */
-  @Prop() color!: string;
+export class CardContent implements ComponentInterface {
+  render() {
+    const mode = getIonMode(this);
+    return (
+      <Host
+        class={{
+          [mode]: true,
 
-  /**
-   * The mode determines which platform styles to use.
-   * Possible values are: `"ios"` or `"md"`.
-   */
-  @Prop() mode!: Mode;
-
+          // Used internally for styling
+          [`card-content-${mode}`]: true,
+        }}
+      ></Host>
+    );
+  }
 }

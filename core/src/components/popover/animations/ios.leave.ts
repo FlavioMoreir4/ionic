@@ -1,24 +1,44 @@
-import { Animation } from '../../../interface';
+import { createAnimation } from '@utils/animation/animation';
+import { getElementRoot } from '@utils/helpers';
+
+import type { Animation } from '../../../interface';
 
 /**
  * iOS Popover Leave Animation
  */
-export default function iosLeaveAnimation(Animation: Animation, baseEl: HTMLElement): Promise<Animation> {
-  const baseAnimation = new Animation();
+export const iosLeaveAnimation = (baseEl: HTMLElement): Animation => {
+  const root = getElementRoot(baseEl);
+  const contentEl = root.querySelector('.popover-content') as HTMLElement;
+  const arrowEl = root.querySelector('.popover-arrow') as HTMLElement | null;
 
-  const backdropAnimation = new Animation();
-  backdropAnimation.addElement(baseEl.querySelector('ion-backdrop'));
+  const baseAnimation = createAnimation();
+  const backdropAnimation = createAnimation();
+  const contentAnimation = createAnimation();
 
-  const wrapperAnimation = new Animation();
-  wrapperAnimation.addElement(baseEl.querySelector('.popover-wrapper'));
+  backdropAnimation.addElement(root.querySelector('ion-backdrop')!).fromTo('opacity', 'var(--backdrop-opacity)', 0);
 
-  wrapperAnimation.fromTo('opacity', 0.99, 0);
-  backdropAnimation.fromTo('opacity', 0.08, 0);
+  contentAnimation
+    .addElement(root.querySelector('.popover-arrow')!)
+    .addElement(root.querySelector('.popover-content')!)
+    .fromTo('opacity', 0.99, 0);
 
-  return Promise.resolve(baseAnimation
-    .addElement(baseEl)
+  return baseAnimation
     .easing('ease')
-    .duration(500)
-    .add(backdropAnimation)
-    .add(wrapperAnimation));
-}
+    .afterAddWrite(() => {
+      baseEl.style.removeProperty('--width');
+      baseEl.classList.remove('popover-bottom');
+
+      contentEl.style.removeProperty('top');
+      contentEl.style.removeProperty('left');
+      contentEl.style.removeProperty('bottom');
+      contentEl.style.removeProperty('transform-origin');
+
+      if (arrowEl) {
+        arrowEl.style.removeProperty('top');
+        arrowEl.style.removeProperty('left');
+        arrowEl.style.removeProperty('display');
+      }
+    })
+    .duration(300)
+    .addAnimation([backdropAnimation, contentAnimation]);
+};

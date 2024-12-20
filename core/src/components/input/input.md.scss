@@ -1,120 +1,128 @@
 @import "./input";
 @import "./input.md.vars";
+@import "./input.md.solid.scss";
+@import "./input.md.outline.scss";
+@import "../item/item.md.vars.scss";
 
 // Material Design Input
 // --------------------------------------------------
 
-.native-input-md {
-  @include placeholder($input-md-placeholder-color);
-  @include margin($input-md-margin-top, $input-md-margin-end, $input-md-margin-bottom, $input-md-margin-start);
-  @include padding(0);
+:host {
+  --border-width: 1px;
+  --border-color: #{$item-md-border-color};
+  --highlight-height: 2px;
 
-  width: calc(100% - #{$input-md-margin-end} - #{$input-md-margin-start});
-
-  font-family: $input-md-font-family;
   font-size: $input-md-font-size;
 }
 
-
-// Material Design Inset Input
-// --------------------------------------------------
-
-.input-md .inset-input {
-  @include padding($input-md-inset-padding-top, $input-md-inset-padding-end, $input-md-inset-padding-bottom, $input-md-inset-padding-start);
-  @include margin($input-md-inset-margin-top, $input-md-inset-margin-end, $input-md-inset-margin-bottom, $input-md-inset-margin-start);
+.input-clear-icon ion-icon {
+  width: 22px;
+  height: 22px;
 }
 
+// Input - Disabled
+// ----------------------------------------------------------------
+// The input, label, helper text, char counter and placeholder
+// should use the same opacity and match the other form controls
 
-// Material Design Highlighted Input
-// --------------------------------------------------
-
-// Input highlight mixin for focus, valid, and invalid states
-@mixin md-input-highlight($highlight-color) {
-  border-bottom-color: $highlight-color;
-  box-shadow: inset 0 -1px 0 0 $highlight-color;
+:host(.input-disabled) {
+  opacity: #{$input-md-disabled-opacity};
 }
 
-// Show the focus highlight when the input has focus
-@if ($input-md-show-focus-highlight) {
-  // In order to get a 2px border we need to add an inset
-  // box-shadow 1px (this is to avoid the div resizing)
+// Input Bottom
+// ----------------------------------------------------------------
 
-  .item-md.item-input.item-input-has-focus .item-inner {
-    @include md-input-highlight($input-md-highlight-color);
-  }
-
-  // The last item in a list has a border on the item, not the
-  // inner item, so add it to the item itself
-  .list-md .item-input.item-input-has-focus:last-child {
-    @include md-input-highlight($input-md-highlight-color);
-
-    .item-inner {
-      box-shadow: none;
-    }
-  }
+/**
+ * If the input has a validity state, the
+ * border and label should reflect that as a color.
+ */
+:host(.has-focus.ion-valid),
+:host(.ion-touched.ion-invalid) {
+  --border-color: var(--highlight-color);
 }
 
-// TODO this is angular specific scss
-
-// Show the valid highlight when it has the .ng-valid class and a value
-@if ($input-md-show-valid-highlight) {
-  .item-md.item-input.ng-valid.item-input-has-value:not(.item-input-has-focus) .item-inner {
-    @include md-input-highlight($input-md-highlight-color-valid);
-  }
-
-  .list-md .item-input.ng-valid.item-input-has-value:not(.item-input-has-focus):last-child {
-    @include md-input-highlight($input-md-highlight-color-valid);
-
-    .item-inner {
-      box-shadow: none;
-    }
-  }
+.input-bottom .counter {
+  letter-spacing: .0333333333em;
 }
 
-// Show the invalid highlight when it has the invalid class and has been touched
-@if ($input-md-show-invalid-highlight) {
-  .item-md.item-input.ng-invalid.ng-touched:not(.item-input-has-focus) .item-inner {
-    @include md-input-highlight($input-md-highlight-color-invalid);
-  }
+// Input Label
+// ----------------------------------------------------------------
 
-  .list-md .item-input.ng-invalid.ng-touched:not(.item-input-has-focus):last-child {
-    @include md-input-highlight($input-md-highlight-color-invalid);
-
-    .item-inner {
-      box-shadow: none;
-    }
-  }
+/**
+ * When the input is focused the label should
+ * take on the highlight color. This should
+ * only apply to floating or stacked labels.
+ */
+:host(.input-label-placement-floating.has-focus) .label-text-wrapper,
+:host(.input-label-placement-stacked.has-focus) .label-text-wrapper {
+  color: var(--highlight-color);
 }
 
-
-// Material Design Stacked & Floating Inputs
-// --------------------------------------------------
-
-.item-label-stacked .native-input-md,
-.item-label-floating .native-input-md {
-  @include margin(8px, null, 8px, 0);
-
-  width: calc(100% - #{$input-md-margin-end});
+:host(.has-focus.input-label-placement-floating.ion-valid) .label-text-wrapper,
+:host(.input-label-placement-floating.ion-touched.ion-invalid) .label-text-wrapper,
+:host(.has-focus.input-label-placement-stacked.ion-valid) .label-text-wrapper,
+:host(.input-label-placement-stacked.ion-touched.ion-invalid) .label-text-wrapper {
+  color: var(--highlight-color);
 }
 
+// Input Highlight
+// ----------------------------------------------------------------
 
-// Material Design Clear Input Icon
-// --------------------------------------------------
+.input-highlight {
+  @include position(null, null, -1px, 0);
 
-.input-md[clear-input] {
-  position: relative;
+  position: absolute;
+
+  width: 100%;
+  height: var(--highlight-height);
+
+  transform: scale(0);
+
+  transition: transform 200ms;
+
+  background: var(--highlight-color);
 }
 
-.input-md[clear-input] .native-input {
-  @include padding-horizontal(null, $input-md-input-clear-icon-width);
+:host(.has-focus) .input-highlight {
+  transform: scale(1);
 }
 
-.input-md .native-input-clear-icon {
-  @include position-horizontal(null, 0);
-  @include svg-background-image($input-md-input-clear-icon-svg);
+/**
+ * Adjust the highlight up by 1px
+ * so it is not cut off by the
+ * the item's line (if one is present).
+ */
+:host(.in-item) .input-highlight {
+  @include position(null, null, 0, 0);
+}
 
-  width: $input-md-input-clear-icon-width;
+// Input Shape Rounded
+// ----------------------------------------------------------------
 
-  background-color: transparent;
-  background-size: $input-md-input-clear-icon-size;
+:host(.input-shape-round) {
+  --border-radius: 16px;
+}
+
+// Start/End Slots
+// ----------------------------------------------------------------
+
+/**
+ * Slotted buttons have a lot of default padding that can
+ * cause them to look misaligned from other pieces such
+ * as the control's label, especially when using a clear
+ * fill. We also make them circular to ensure that non-
+ * clear buttons and the focus/hover state on clear ones
+ * don't look too crowded.
+ */
+::slotted(ion-button[slot="start"].button-has-icon-only),
+::slotted(ion-button[slot="end"].button-has-icon-only) {
+  --border-radius: 50%;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  --padding-top: 8px;
+  --padding-bottom: 8px;
+
+  aspect-ratio: 1;
+
+  min-height: 40px;
 }

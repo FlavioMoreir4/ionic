@@ -1,29 +1,19 @@
-import { Animation } from '../../../interface';
+import { createAnimation } from '@utils/animation/animation';
+import { getElementRoot } from '@utils/helpers';
+
+import type { Animation } from '../../../interface';
 
 /**
  * md Toast Leave Animation
  */
-export default function mdLeaveAnimation(Animation: Animation, baseEl: HTMLElement, position: string): Promise<Animation> {
-  const baseAnimation = new Animation();
+export const mdLeaveAnimation = (baseEl: HTMLElement): Animation => {
+  const baseAnimation = createAnimation();
+  const wrapperAnimation = createAnimation();
 
-  const wrapperAnimation = new Animation();
-  const wrapperEle = baseEl.querySelector('.toast-wrapper') as HTMLElement;
-  wrapperAnimation.addElement(wrapperEle);
+  const root = getElementRoot(baseEl);
+  const wrapperEl = root.querySelector('.toast-wrapper') as HTMLElement;
 
-  switch (position) {
-    case 'top':
-      wrapperAnimation.fromTo('translateY', '0px', '-100%');
-      break;
-    case 'middle':
-      wrapperAnimation.fromTo('opacity', 0.99, 0);
-      break;
-    default:
-      wrapperAnimation.fromTo('translateY', `0px`, '100%');
-      break;
-  }
-  return Promise.resolve(baseAnimation
-    .addElement(baseEl)
-    .easing('cubic-bezier(.36,.66,.04,1)')
-    .duration(300)
-    .add(wrapperAnimation));
-}
+  wrapperAnimation.addElement(wrapperEl).fromTo('opacity', 0.99, 0);
+
+  return baseAnimation.easing('cubic-bezier(.36,.66,.04,1)').duration(300).addAnimation(wrapperAnimation);
+};

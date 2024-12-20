@@ -4,100 +4,79 @@
 // --------------------------------------------------
 
 /// @prop - Padding top on the tab button
-$tab-button-md-padding-top:                     8px !default;
+$tab-button-md-padding-top:                     0;
 
 /// @prop - Padding end on the tab button
-$tab-button-md-padding-end:                     12px !default;
+$tab-button-md-padding-end:                     12px;
 
 /// @prop - Padding bottom on the tab button
-$tab-button-md-padding-bottom:                  10px !default;
+$tab-button-md-padding-bottom:                  0;
 
 /// @prop - Padding start on the tab button
-$tab-button-md-padding-start:                   12px, !default;
+$tab-button-md-padding-start:                   12px;
 
 /// @prop - Font size of the inactive tab button text
-$tab-button-md-font-size:                       12px !default;
+$tab-button-md-font-size:                       12px;
+
+/// @prop - Letter spacing of the tab button
+$tab-button-md-letter-spacing:                  .03em;
 
 /// @prop - Font weight of the tab button text
-$tab-button-md-font-weight:                     normal !default;
+$tab-button-md-font-weight:                     normal;
 
 /// @prop - Text color of the inactive tab button
-$tab-button-md-text-color:                      $tabbar-md-text-color !default;
+$tab-button-md-text-color:                      $tabbar-md-color;
 
-/// @prop - Text color of the active tab button
-$tab-button-md-text-color-active:               $tabbar-md-text-color-active !default;
+/// @prop - Margin top on the tab button icon
+$tab-button-md-icon-margin-top:                 16px;
 
-/// @prop - Icon color of the inactive tab button
-$tab-button-md-icon-color:                      $tabbar-md-text-color !default;
+/// @prop - Margin end on the tab button icon
+$tab-button-md-icon-margin-end:                 0;
 
-/// @prop - Icon color of the active tab button
-$tab-button-md-icon-color-active:               $tabbar-md-text-color-active !default;
+/// @prop - Margin bottom on the tab button icon
+$tab-button-md-icon-margin-bottom:              $tab-button-md-icon-margin-top;
 
-/// @prop - Font size of the active tab button text
-$tab-button-md-font-size-active:                14px !default;
+/// @prop - Margin start on the tab button icon
+$tab-button-md-icon-margin-start:               $tab-button-md-icon-margin-end;
 
 /// @prop - Margin top on the tab button text
-$tab-button-md-text-margin-top:                 0 !default;
+$tab-button-md-text-margin-top:                 2px;
 
 /// @prop - Margin end on the tab button text
-$tab-button-md-text-margin-end:                 $tab-button-md-text-margin-top !default;
+$tab-button-md-text-margin-end:                 0;
 
 /// @prop - Margin bottom on the tab button text
-$tab-button-md-text-margin-bottom:              $tab-button-md-text-margin-top !default;
+$tab-button-md-text-margin-bottom:              $tab-button-md-text-margin-top;
 
 /// @prop - Margin start on the tab button text
-$tab-button-md-text-margin-start:               $tab-button-md-text-margin-end !default;
+$tab-button-md-text-margin-start:               $tab-button-md-text-margin-end;
 
 /// @prop - Capitalization of the tab button text
-$tab-button-md-text-capitalization:             none !default;
-
-/// @prop - Transform for the active tab button text
-$tab-button-md-text-transform-active:           scale3d($tab-button-md-font-size-active / $tab-button-md-font-size, $tab-button-md-font-size-active / $tab-button-md-font-size, 1) !default;
-
-/// @prop - Text transition for the tab button text
-$tab-button-md-text-transition:                 transform .3s ease-in-out !default;
-
-/// @prop - Transform x for the active tab button icon when the layout is icon-top, icon-only, or title-only
-$tab-button-md-icon-transform-x-active:         0 !default;
-
-/// @prop - Transform y for the active tab button icon when the layout is icon-top, icon-only, or title-only
-$tab-button-md-icon-transform-y-active:         -2px !default;
-
-/// @prop - Transform z for the active tab button icon when the layout is icon-top, icon-only, or title-only
-$tab-button-md-icon-transform-z-active:         0 !default;
-
-/// @prop - Transform x for the active tab button icon when the layout is icon-right
-$tab-button-md-icon-right-transform-x-active:   2px !default;
-
-/// @prop - Transform y for the active tab button icon when the layout is icon-right
-$tab-button-md-icon-right-transform-y-active:   0 !default;
-
-/// @prop - Transform z for the active tab button icon when the layout is icon-right
-$tab-button-md-icon-right-transform-z-active:   0 !default;
-
-/// @prop - Transform x for the active tab button icon when the layout is icon-bottom
-$tab-button-md-icon-bottom-transform-x-active:  0 !default;
-
-/// @prop - Transform y for the active tab button icon when the layout is icon-bottom
-$tab-button-md-icon-bottom-transform-y-active:  2px !default;
-
-/// @prop - Transform z for the active tab button icon when the layout is icon-bottom
-$tab-button-md-icon-bottom-transform-z-active:  0 !default;
-
-/// @prop - Transform x for the active tab button icon when the layout is icon-left
-$tab-button-md-icon-left-transform-x-active:    -2px !default;
-
-/// @prop - Transform y for the active tab button icon when the layout is icon-left
-$tab-button-md-icon-left-transform-y-active:    0 !default;
-
-/// @prop - Transform z for the active tab button icon when the layout is icon-left
-$tab-button-md-icon-left-transform-z-active:    0 !default;
-
-/// @prop - Text transition for the tab button icon
-$tab-button-md-icon-transition:                 transform .3s ease-in-out !default;
+$tab-button-md-text-capitalization:             none;
 
 /// @prop - Size of the tab button icon
-$tab-button-md-icon-size:                       24px !default;
+$tab-button-md-icon-size:                       22px;
 
-/// @prop - Opacity of the inactive tab button
-$tab-button-md-opacity:                         .7 !default;
+/// @prop - Border radius on the tab button badge
+$tab-button-md-badge-border-radius:             8px;
+
+/// @prop - Padding top on the tab button badge
+$tab-button-md-badge-padding-top:               3px;
+
+/// @prop - Padding end on the tab button badge
+$tab-button-md-badge-padding-end:               2px;
+
+/// @prop - Padding bottom on the tab button badge
+$tab-button-md-badge-padding-bottom:            2px;
+
+/// @prop - Padding start on the tab button badge
+$tab-button-md-badge-padding-start:             2px;
+
+/// @prop - Minimum width of the tab button badge
+$tab-button-md-badge-min-width:                 12px;
+
+/// @prop - Font size of the tab button badge
+$tab-button-md-badge-font-size:                 8px;
+
+/// @prop - Size of the empty tab button badge
+$tab-button-md-badge-size-empty:                8px;

@@ -1,46 +1,48 @@
-import { Component, Prop } from '@stencil/core';
+import type { ComponentInterface } from '@stencil/core';
+import { Component, Host, Prop, h } from '@stencil/core';
+import { createColorClasses } from '@utils/theme';
 
-import { Mode } from '../../interface';
-import { createThemedClasses } from '../../utils/theme';
+import { getIonMode } from '../../global/ionic-global';
+import type { Color } from '../../interface';
 
+/**
+ * @virtualProp {"ios" | "md"} mode - The mode determines which platform styles to use.
+ */
 @Component({
   tag: 'ion-card-header',
   styleUrls: {
     ios: 'card-header.ios.scss',
-    md: 'card-header.md.scss'
+    md: 'card-header.md.scss',
   },
-  host: {
-    theme: 'card-header'
-  }
+  shadow: true,
 })
-export class CardHeader {
+export class CardHeader implements ComponentInterface {
   /**
-   * The color to use for the background.
+   * The color to use from your application's color palette.
    * Default options are: `"primary"`, `"secondary"`, `"tertiary"`, `"success"`, `"warning"`, `"danger"`, `"light"`, `"medium"`, and `"dark"`.
+   * For more information on colors, see [theming](/docs/theming/basics).
    */
-  @Prop() color!: string;
+  @Prop({ reflect: true }) color?: Color;
 
   /**
-   * The mode determines which platform styles to use.
-   * Possible values are: `"ios"` or `"md"`.
-   */
-  @Prop() mode!: Mode;
-
-  /**
-   * If true, the card header will be translucent. Defaults to `false`.
+   * If `true`, the card header will be translucent.
+   * Only applies when the mode is `"ios"` and the device supports
+   * [`backdrop-filter`](https://developer.mozilla.org/en-US/docs/Web/CSS/backdrop-filter#Browser_compatibility).
    */
   @Prop() translucent = false;
 
-  hostData() {
-    const themedClasses = this.translucent ? createThemedClasses(this.mode, this.color, 'card-header-translucent') : {};
-
-    const hostClasses = {
-      ...themedClasses
-    };
-
-    return {
-      class: hostClasses
-    };
+  render() {
+    const mode = getIonMode(this);
+    return (
+      <Host
+        class={createColorClasses(this.color, {
+          'card-header-translucent': this.translucent,
+          'ion-inherit-color': true,
+          [mode]: true,
+        })}
+      >
+        <slot></slot>
+      </Host>
+    );
   }
-
 }

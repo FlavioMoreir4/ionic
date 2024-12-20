@@ -1,25 +1,22 @@
-import { Animation } from '../../../interface';
+import { createAnimation } from '@utils/animation/animation';
+
+import type { Animation } from '../../../interface';
 
 /**
  * Md Alert Leave Animation
  */
-export default function mdLeaveAnimation(Animation: Animation, baseEl: HTMLElement): Promise<Animation> {
-  const baseAnimation = new Animation();
+export const mdLeaveAnimation = (baseEl: HTMLElement): Animation => {
+  const baseAnimation = createAnimation();
+  const backdropAnimation = createAnimation();
+  const wrapperAnimation = createAnimation();
 
-  const backdropAnimation = new Animation();
-  backdropAnimation.addElement(baseEl.querySelector('ion-backdrop'));
+  backdropAnimation.addElement(baseEl.querySelector('ion-backdrop')!).fromTo('opacity', 'var(--backdrop-opacity)', 0);
 
-  const wrapperAnimation = new Animation();
-  wrapperAnimation.addElement(baseEl.querySelector('.alert-wrapper'));
+  wrapperAnimation.addElement(baseEl.querySelector('.alert-wrapper')!).fromTo('opacity', 0.99, 0);
 
-  backdropAnimation.fromTo('opacity', 0.5, 0);
-
-  wrapperAnimation.fromTo('opacity', 0.99, 0).fromTo('scale', 1, 0.9);
-
-  return Promise.resolve(baseAnimation
+  return baseAnimation
     .addElement(baseEl)
     .easing('ease-in-out')
-    .duration(200)
-    .add(backdropAnimation)
-    .add(wrapperAnimation));
-}
+    .duration(150)
+    .addAnimation([backdropAnimation, wrapperAnimation]);
+};

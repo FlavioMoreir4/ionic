@@ -1,11 +1,14 @@
+import type { ComponentInterface, EventEmitter } from '@stencil/core';
 import { Component, Event, Prop, Watch } from '@stencil/core';
-import { EventEmitter } from 'ionicons/dist/types/stencil.core';
+
+import type { NavigationHookCallback } from './route-interface';
+
+// TODO(FW-2832): types
 
 @Component({
-  tag: 'ion-route'
+  tag: 'ion-route',
 })
-export class Route {
-
+export class Route implements ComponentInterface {
   /**
    * Relative path that needs to match in order for this route to apply.
    *
@@ -19,7 +22,7 @@ export class Route {
    * when the route matches.
    *
    * The value of this property is not always the tagname of the component to load,
-   * in ion-tabs it actually refers to the name of the `ion-tab` to select.
+   * in `ion-tabs` it actually refers to the name of the `ion-tab` to select.
    */
   @Prop() component!: string;
 
@@ -27,10 +30,26 @@ export class Route {
    * A key value `{ 'red': true, 'blue': 'white'}` containing props that should be passed
    * to the defined component when rendered.
    */
-  @Prop() componentProps?: {[key: string]: any};
+  @Prop() componentProps?: { [key: string]: any };
 
   /**
-   * Used internaly by `ion-router` to know when this route did change.
+   * A navigation hook that is fired when the route tries to leave.
+   * Returning `true` allows the navigation to proceed, while returning
+   * `false` causes it to be cancelled. Returning a `NavigationHookOptions`
+   * object causes the router to redirect to the path specified.
+   */
+  @Prop() beforeLeave?: NavigationHookCallback;
+
+  /**
+   * A navigation hook that is fired when the route tries to enter.
+   * Returning `true` allows the navigation to proceed, while returning
+   * `false` causes it to be cancelled. Returning a `NavigationHookOptions`
+   * object causes the router to redirect to the path specified.
+   */
+  @Prop() beforeEnter?: NavigationHookCallback;
+
+  /**
+   * Used internally by `ion-router` to know when this route did change.
    */
   @Event() ionRouteDataChanged!: EventEmitter<any>;
 
@@ -51,8 +70,7 @@ export class Route {
       this.onUpdate(newValue);
       return;
     }
-    for (let i = 0; i < keys1.length; i++) {
-      const key = keys1[i];
+    for (const key of keys1) {
       if (newValue[key] !== oldValue[key]) {
         this.onUpdate(newValue);
         return;
@@ -60,10 +78,7 @@ export class Route {
     }
   }
 
-  componentDidLoad() {
-    this.ionRouteDataChanged.emit();
-  }
-  componentDidUnload() {
+  connectedCallback() {
     this.ionRouteDataChanged.emit();
   }
 }

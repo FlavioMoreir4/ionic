@@ -1,38 +1,39 @@
+@import "../../themes/ionic.globals.md";
 @import "./menu-button";
-@import "./menu-button.md.vars";
 
 // MD Menu Button
 // --------------------------------------------------
 
-.menu-button-md .menu-button-inner {
-  @include margin(2px, 6px, 0, 0);
-  @include padding(0, 5px);
+:host {
+  --background-focused: currentColor;
+  --background-focused-opacity: .12;
+  --background-hover: currentColor;
+  --background-hover-opacity: .04;
+  --border-radius: 50%;
+  --color: initial;
+  --padding-start: 8px;
+  --padding-end: 8px;
 
-  min-width: 44px;
-  height: 32px;
-  border: 0;
-  font-size: 14px;
-  font-weight: 500;
-  text-transform: uppercase;
+  width: 3rem;
+  height: 3rem;
 
-  color: $menu-button-md-color;
-  background-color: transparent;
-
-  box-shadow: none;
-
-  &.activated {
-    opacity: 0.4;
-  }
+  font-size: dynamic-font(24px);
 }
 
-.menu-button-md ion-icon {
-  @include padding-horizontal(null, 0.3em);
-  @include margin(0);
-  @include padding(0, 6px);
-  @include text-align(start);
 
-  font-size: 24px;
-  font-weight: normal;
-  line-height: 0.67;
-  pointer-events: none;
+// Menu Button Color: Focused
+// --------------------------------------------------
+
+:host(.ion-color.ion-focused)::after {
+  background: #{current-color(base)};
+}
+
+
+// Menu Button Color: Hover
+// --------------------------------------------------
+
+@media (any-hover: hover) {
+  :host(.ion-color:hover) .button-native::after {
+    background: #{current-color(base)};
+  }
 }

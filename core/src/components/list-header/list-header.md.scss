@@ -4,26 +4,37 @@
 // Material Design List Header
 // --------------------------------------------------
 
-.list-header-md {
-  @include padding-horizontal($list-md-header-padding-start, null);
-  @include margin(null, null, $list-md-header-margin-bottom, null);
+:host {
+  --background: transparent;
+  --color: #{$list-header-md-color};
+  --border-color: #{$item-md-border-bottom-color};
 
-  min-height: $list-md-header-min-height;
+  /* stylelint-disable */
+  @include ltr() {
+    padding-right: var(--ion-safe-area-right);
+    padding-left: calc(var(--ion-safe-area-left, 0px) + #{$list-header-md-padding-start});
+  }
 
-  font-size: $list-md-header-font-size;
-  color: $list-md-header-color;
+  @include rtl() {
+    padding-right: calc(var(--ion-safe-area-right, 0px) + #{$list-header-md-padding-start});
+    padding-left: var(--ion-safe-area-left);
+  }
+  /* stylelint-enable */
+
+  min-height: $list-header-md-min-height;
+
+  font-size: $list-header-md-font-size;
 }
 
-
-// Generate Material Design List Header Colors
+// List Header Lines
 // --------------------------------------------------
 
-@each $color-name, $color-value in $colors-md {
-  $color-base: ion-color($colors-md, $color-name, base, md);
-  $color-contrast: ion-color($colors-md, $color-name, contrast, md);
+// Full lines - apply the border to the list header
+// Inset lines - apply the border to the list header inner
+:host(.list-header-lines-full) {
+  --border-width: #{0 0 $item-md-border-bottom-width 0};
+}
 
-  .list-header-md-#{$color-name} {
-    color: $color-contrast;
-    background-color: $color-base;
-  }
+:host(.list-header-lines-inset) {
+  --inner-border-width: #{0 0 $item-md-border-bottom-width 0};
 }

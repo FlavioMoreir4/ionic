@@ -1,43 +1,49 @@
 @import "./textarea";
+@import "./textarea.vars";
 @import "./textarea.ios.vars";
 
 // iOS Textarea
 // --------------------------------------------------
 
-.native-textarea-ios {
-  @include placeholder($textarea-ios-placeholder-color);
-  @include margin($textarea-ios-margin-top, $textarea-ios-margin-end, $textarea-ios-margin-bottom, $textarea-ios-margin-start);
-  @include padding(0);
+:host {
+  --border-width: #{$hairlines-width};
+  --border-color: #{$item-ios-border-color};
+  --padding-top: #{$textarea-ios-padding-top};
+  --padding-end: 0px;
+  --padding-bottom: #{$textarea-padding-bottom};
+  --padding-start: 0px;
+  --highlight-height: 0px;
 
-  width: calc(100% - #{($textarea-ios-margin-end + $textarea-ios-margin-start)});
-
-  font-family: $textarea-ios-font-family;
   font-size: $textarea-ios-font-size;
 }
 
+// Textarea - Disabled
+// ----------------------------------------------------------------
+// The textarea, label, helper text, char counter and placeholder
+// should use the same opacity and match the other form controls
 
-// iOS Stacked & Floating Textarea
-// --------------------------------------------------
-
-.item-ios.item-label-stacked .native-textarea,
-.item-ios.item-label-floating .native-textarea {
-  @include margin(8px, null, 8px, 0);
-
-  width: calc(100% - #{$textarea-ios-margin-end});
+:host(.textarea-disabled) {
+  opacity: #{$textarea-ios-disabled-opacity};
 }
 
-.item-ios.item-label-stacked .label-ios + .input + .cloned-input,
-.item-ios.item-label-floating .label-ios + .input + .cloned-input {
-  @include margin-horizontal(0, null);
-}
+// Start/End Slots
+// ----------------------------------------------------------------
 
+/**
+ * Slotted buttons have a lot of default padding that can
+ * cause them to look misaligned from other pieces such
+ * as the control's label, especially when using a clear
+ * fill. We also make them circular to ensure that non-
+ * clear buttons and the focus/hover state on clear ones
+ * don't look too crowded.
+ */
+::slotted(ion-button[slot="start"].button-has-icon-only),
+::slotted(ion-button[slot="end"].button-has-icon-only) {
+  --border-radius: 50%;
+  --padding-start: 0;
+  --padding-end: 0;
+  --padding-top: 0;
+  --padding-bottom: 0;
 
-// iOS Textarea After Label
-// --------------------------------------------------
-
-.label-ios + ion-textarea .native-textarea,
-.label-ios + .input + .cloned-input {
-  @include margin-horizontal($textarea-ios-by-label-margin-start, null);
-
-  width: calc(100% - (#{$item-ios-padding-end} / 2) - #{$item-ios-padding-start});
+  aspect-ratio: 1;
 }

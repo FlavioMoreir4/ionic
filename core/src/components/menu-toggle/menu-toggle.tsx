@@ -1,71 +1,69 @@
-import { Component, Listen, Prop, State } from '@stencil/core';
+import type { ComponentInterface } from '@stencil/core';
+import { Component, Host, Listen, Prop, State, h } from '@stencil/core';
+import { menuController } from '@utils/menu-controller';
 
+import { getIonMode } from '../../global/ionic-global';
+
+import { updateVisibility } from './menu-toggle-util';
+
+/**
+ * @slot - Content is placed inside the toggle to act as the click target.
+ */
 @Component({
   tag: 'ion-menu-toggle',
-  styleUrl: 'menu-toggle.scss'
+  styleUrl: 'menu-toggle.scss',
+  shadow: true,
 })
-export class MenuToggle {
-
-  @Prop({ context: 'document' }) doc!: Document;
-
+export class MenuToggle implements ComponentInterface {
   @State() visible = false;
 
   /**
-   * Optional property that maps to a Menu's `menuId` prop. Can also be `left` or `right` for the menu side. This is used to find the correct menu to toggle
+   * Optional property that maps to a Menu's `menuId` prop.
+   * Can also be `start` or `end` for the menu side.
+   * This is used to find the correct menu to toggle.
+   *
+   * If this property is not used, `ion-menu-toggle` will toggle the
+   * first menu that is active.
    */
   @Prop() menu?: string;
 
   /**
-   * Automatically hides the content when the corresponding menu is not
-   * active
+   * Automatically hides the content when the corresponding menu is not active.
+   *
+   * By default, it's `true`. Change it to `false` in order to
+   * keep `ion-menu-toggle` always visible regardless the state of the menu.
    */
   @Prop() autoHide = true;
 
-  componentDidLoad() {
-    this.updateVisibility();
+  connectedCallback() {
+    this.visibilityChanged();
   }
 
-  @Listen('child:click')
-  async onClick() {
-    const menuCtrl = await getMenuController(this.doc);
-    if (menuCtrl) {
-      const menu = menuCtrl.get(this.menu);
-      if (menu && menu.isActive()) {
-        return menuCtrl.toggle(this.menu);
-      }
-    }
-    return false;
+  @Listen('ionMenuChange', { target: 'body' })
+  @Listen('ionSplitPaneVisible', { target: 'body' })
+  async visibilityChanged() {
+    this.visible = await updateVisibility(this.menu);
   }
 
-  @Listen('body:ionMenuChange')
-  @Listen('body:ionSplitPaneVisible')
-  async updateVisibility() {
-    const menuCtrl = await getMenuController(this.doc);
-    if (menuCtrl) {
-      const menu = menuCtrl.get(this.menu);
-      if (menu && menu.isActive()) {
-        this.visible = true;
-        return;
-      }
-    }
-    this.visible = false;
-  }
+  private onClick = () => {
+    return menuController.toggle(this.menu);
+  };
 
-  hostData() {
+  render() {
+    const mode = getIonMode(this);
     const hidden = this.autoHide && !this.visible;
-    return {
-      class:  {
-        'menu-toggle-hidden': hidden
-      }
-    };
-  }
 
-}
-
-function getMenuController(doc: Document): Promise<HTMLIonMenuControllerElement|undefined> {
-  const menuControllerElement = doc.querySelector('ion-menu-controller');
-  if (!menuControllerElement) {
-    return Promise.resolve(undefined);
+    return (
+      <Host
+        onClick={this.onClick}
+        aria-hidden={hidden ? 'true' : null}
+        class={{
+          [mode]: true,
+          'menu-toggle-hidden': hidden,
+        }}
+      >
+        <slot></slot>
+      </Host>
+    );
   }
-  return menuControllerElement.componentOnReady();
 }

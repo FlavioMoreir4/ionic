@@ -4,68 +4,118 @@
 // Material Design Label
 // --------------------------------------------------
 
-.label-md {
-  @include margin($label-md-margin-top, $label-md-margin-end, $label-md-margin-bottom, $label-md-margin-start);
-
-  font-family: $label-md-font-family;
-}
-
-[text-wrap] .label-md {
-  font-size: $label-md-text-wrap-font-size;
+:host(.ion-text-wrap) {
   line-height: $label-md-text-wrap-line-height;
-}
-
-
-// Material Design Default Label Inside An Input/Select Item
-// --------------------------------------------------
-
-.item-input .label-md,
-.item-select .label-md,
-.item-datetime .label-md {
-  color: $label-md-text-color;
 }
 
 
 // Material Design Stacked & Floating Labels
 // --------------------------------------------------
 
-.label-md-stacked {
-  font-size: 12px;
+/**
+ * When translating the label, we need to use translateY
+ * instead of translate3d due to a WebKit bug: https://bugs.webkit.org/show_bug.cgi?id=215731
+ */
+ :host(.label-stacked),
+ :host(.label-floating) {
+   @include margin(0, 0, 0, 0);
+   /* stylelint-disable property-disallowed-list */
+   transform-origin: top left;
+   /* stylelint-enable property-disallowed-list */
+ }
+
+ :host(.label-stacked.label-rtl),
+ :host(.label-floating.label-rtl) {
+   /* stylelint-disable property-disallowed-list */
+   transform-origin: top right;
+   /* stylelint-enable property-disallowed-list */
+ }
+
+:host(.label-stacked) {
+  @include transform(translateY(50%), scale(.75));
+
+  transition: color 150ms $label-md-transition-timing-function;
 }
 
-.label-md-floating {
-  @include transform(translate3d(0, 27px, 0));
-  @include transform-origin(start, top);
+:host(.label-floating) {
+  @include transform(translateY(96%));
 
-  transition: transform 150ms ease-in-out;
+  transition:
+    color 150ms $label-md-transition-timing-function,
+    transform 150ms $label-md-transition-timing-function;
 }
 
-.label-md-stacked,
-.label-md-floating {
-  @include margin(null, null, 0, 0);
+:host-context(.ion-focused).label-floating,
+:host-context(.item-has-focus).label-floating,
+:host-context(.item-has-placeholder:not(.item-input)).label-floating,
+:host-context(.item-has-value).label-floating {
+  @include transform(translateY(50%), scale(.75));
 }
 
-.item-input-has-focus .label-md-stacked,
-.item-input-has-focus .label-md-floating {
+:host-context(.ion-focused).label-stacked:not(.ion-color),
+:host-context(.ion-focused).label-floating:not(.ion-color),
+:host-context(.item-has-focus).label-stacked:not(.ion-color),
+:host-context(.item-has-focus).label-floating:not(.ion-color) {
   color: $label-md-text-color-focused;
 }
 
-.item-input-has-focus .label-md-floating,
-.item-input-has-value .label-md-floating {
-  @include transform(translate3d(0, 0, 0), scale(.8));
+:host-context(.ion-focused.ion-color).label-stacked:not(.ion-color),
+:host-context(.ion-focused.ion-color).label-floating:not(.ion-color),
+:host-context(.item-has-focus.ion-color).label-stacked:not(.ion-color),
+:host-context(.item-has-focus.ion-color).label-floating:not(.ion-color) {
+  color: #{current-color(contrast)};
 }
 
+:host-context(.ion-invalid.ion-touched).label-stacked:not(.ion-color),
+:host-context(.ion-invalid.ion-touched).label-floating:not(.ion-color) {
+  color: var(--highlight-color-invalid);
+}
 
-// Generate Material Design Label colors
+// MD Typography
 // --------------------------------------------------
 
-@each $color-name, $color-value in $colors-md {
-  $color-base: ion-color($colors-md, $color-name, base, md);
+::slotted(*) h1 {
+  @include margin(0, 0, 2px);
 
-  .label-md-#{$color-name},
-  .item-input .label-md-#{$color-name},
-  .item-select .label-md-#{$color-name},
-  .item-datetime .label-md-#{$color-name} {
-    color: $color-base;
-  }
+  font-size: dynamic-font(24px);
+  font-weight: normal;
+}
+
+::slotted(*) h2 {
+  @include margin(2px, 0);
+
+  font-size: dynamic-font(16px);
+  font-weight: normal;
+}
+
+::slotted(*) h3,
+::slotted(*) h4,
+::slotted(*) h5,
+::slotted(*) h6 {
+  @include margin(2px, 0);
+
+  font-size: dynamic-font(14px);
+  font-weight: normal;
+
+  line-height: normal;
+}
+
+::slotted(*) p {
+  @include margin(0, 0, 2px);
+
+  font-size: dynamic-font(14px);
+
+  line-height: dynamic-font(20px);
+
+  text-overflow: inherit;
+
+  overflow: inherit;
+}
+
+::slotted(p) {
+  color: $item-md-paragraph-text-color;
+}
+
+:host(.in-item-color)::slotted(p) {
+  color: inherit;
 }

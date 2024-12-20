@@ -1,33 +1,54 @@
+import type { AnimationBuilder, LiteralUnion, Mode, TextFieldTypes } from '../../interface';
+import type { IonicSafeString } from '../../utils/sanitization';
 
 export interface AlertOptions {
   header?: string;
   subHeader?: string;
-  message?: string;
+  message?: string | IonicSafeString;
   cssClass?: string | string[];
-  mode?: string;
   inputs?: AlertInput[];
-  buttons?: (AlertButton|string)[];
-  enableBackdropDismiss?: boolean;
+  buttons?: (AlertButton | string)[];
+  backdropDismiss?: boolean;
   translucent?: boolean;
+  animated?: boolean;
+  htmlAttributes?: { [key: string]: any };
+
+  mode?: Mode;
+  keyboardClose?: boolean;
+  id?: string;
+
+  enterAnimation?: AnimationBuilder;
+  leaveAnimation?: AnimationBuilder;
 }
 
 export interface AlertInput {
-  type: string;
-  name: string | number;
+  type?: TextFieldTypes | 'checkbox' | 'radio' | 'textarea';
+  name?: string;
   placeholder?: string;
-  value?: string;
+  value?: any; // TODO(FW-2832): type
+  /**
+   * The label text to display next to the input, if the input type is `radio` or `checkbox`.
+   */
   label?: string;
   checked?: boolean;
   disabled?: boolean;
   id?: string;
-  handler?: Function;
+  handler?: (input: AlertInput) => void;
   min?: string | number;
   max?: string | number;
+  cssClass?: string | string[];
+  attributes?: { [key: string]: any };
+  tabindex?: number;
 }
+
+type AlertButtonOverlayHandler = boolean | void | { [key: string]: any };
 
 export interface AlertButton {
   text: string;
-  role?: string;
+  role?: LiteralUnion<'cancel' | 'destructive', string>;
   cssClass?: string | string[];
-  handler?: (value: any) => boolean|void;
+  id?: string;
+  htmlAttributes?: { [key: string]: any };
+  // TODO(FW-2832): type
+  handler?: (value: any) => AlertButtonOverlayHandler | Promise<AlertButtonOverlayHandler>;
 }

@@ -1,14 +1,22 @@
 @import "./split-pane.vars";
+@import "../menu/menu.vars";
 
 // Split Pane
 // --------------------------------------------------
 
-.split-pane {
+:host {
+  /**
+   * @prop --border: Border between panes
+   * @prop --side-min-width: Minimum width of the side pane. Does not apply when split pane is collapsed.
+   * @prop --side-max-width: Maximum width of the side pane. Does not apply when split pane is collapsed.
+   * @prop --side-width: Width of the side pane. Does not apply when split pane is collapsed.
+   */
+  --side-width: 100%;
+
   @include position(0, 0, 0, 0);
 
-  position: absolute;
-
   display: flex;
+  position: absolute;
 
   flex-direction: row;
   flex-wrap: nowrap;
@@ -16,78 +24,28 @@
   contain: strict;
 }
 
-.split-pane-visible > .split-pane-side,
-.split-pane-visible > .split-pane-main {
+:host(.split-pane-visible) ::slotted(.split-pane-main) {
   @include position(0, 0, 0, 0);
 
-  // scss-lint:disable ImportantRule
   position: relative;
-
-  z-index: 0;
 
   flex: 1;
 
-  box-shadow: none !important;
+  box-shadow: none;
+
+  /**
+   * Content can overflow outside of a router outlet
+   * or a nav container to allow for the translucent
+   * tab bar effect to work. However, this can cause
+   * iOS page transitions to flow outside of the container
+   * and overlap the menu on larger viewports. As a result,
+   * we disable the overflow when that is the case.
+   */
+  overflow: hidden;
+
+  z-index: 0;
 }
 
-.split-pane-visible > .split-pane-side:not(ion-menu),
-.split-pane-visible > ion-menu.split-pane-side.menu-enabled {
-  display: flex;
-
-  flex-shrink: 0;
-
-  order: -1;
-}
-
-.split-pane-side:not(ion-menu) {
+::slotted(.split-pane-side:not(ion-menu)) {
   display: none;
-}
-
-.split-pane-visible > ion-menu {
-  > .menu-inner {
-    @include position-horizontal(0, 0);
-
-    // scss-lint:disable ImportantRule
-    width: auto;
-
-    box-shadow: none !important;
-    transform: none !important;
-  }
-
-  > .ion-backdrop {
-    // scss-lint:disable ImportantRule
-    display: hidden !important;
-  }
-}
-
-.split-pane-visible > .split-pane-side[side=start] {
-  @include multi-dir() {
-    order: -1;
-  }
-}
-
-.split-pane-visible > .split-pane-side[side=end] {
-  @include multi-dir() {
-    order: 1;
-  }
-}
-
-.split-pane-visible > .split-pane-side[side=left] {
-  @include ltr() {
-    order: -1;
-  }
-
-  @include rtl() {
-    order: 1;
-  }
-}
-
-.split-pane-visible > .split-pane-side[side=right] {
-  @include ltr() {
-    order: 1;
-  }
-
-  @include rtl() {
-    order: -1;
-  }
 }

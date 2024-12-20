@@ -1,42 +1,54 @@
-import { Component, Event, EventEmitter, Prop, State, Watch } from '@stencil/core';
-import { CheckboxInput, CheckedInputChangeEvent, GestureDetail, Mode, StyleEvent } from '../../interface';
-import { hapticSelection } from '../../utils/haptic';
-import { deferEvent } from '../../utils/helpers';
+import type { ComponentInterface, EventEmitter } from '@stencil/core';
+import { Component, Element, Event, Host, Prop, State, Watch, h } from '@stencil/core';
+import { renderHiddenInput, inheritAriaAttributes } from '@utils/helpers';
+import type { Attributes } from '@utils/helpers';
+import { hapticSelection } from '@utils/native/haptic';
+import { isRTL } from '@utils/rtl';
+import { createColorClasses, hostContext } from '@utils/theme';
+import { checkmarkOutline, removeOutline, ellipseOutline } from 'ionicons/icons';
 
+import { config } from '../../global/config';
+import { getIonMode } from '../../global/ionic-global';
+import type { Color, Gesture, GestureDetail, Mode } from '../../interface';
 
+import type { ToggleChangeEventDetail } from './toggle-interface';
+
+/**
+ * @virtualProp {"ios" | "md"} mode - The mode determines which platform styles to use.
+ *
+ * @slot - The label text to associate with the toggle. Use the "labelPlacement" property to control where the label is placed relative to the toggle.
+ *
+ * @part track - The background track of the toggle.
+ * @part handle - The toggle handle, or knob, used to change the checked state.
+ * @part label - The label text describing the toggle.
+ */
 @Component({
   tag: 'ion-toggle',
   styleUrls: {
     ios: 'toggle.ios.scss',
-    md: 'toggle.md.scss'
+    md: 'toggle.md.scss',
   },
-  host: {
-    theme: 'toggle'
-  }
+  shadow: true,
 })
-export class Toggle implements CheckboxInput {
-
+export class Toggle implements ComponentInterface {
   private inputId = `ion-tg-${toggleIds++}`;
-  private nativeInput!: HTMLInputElement;
-  private pivotX = 0;
+  private gesture?: Gesture;
+  private focusEl?: HTMLElement;
+  private lastDrag = 0;
+  private inheritedAttributes: Attributes = {};
+  private toggleTrack?: HTMLElement;
+  private didLoad = false;
+
+  @Element() el!: HTMLIonToggleElement;
 
   @State() activated = false;
 
-  @State() keyFocus = false;
-
   /**
-   * The color to use from your Sass `$colors` map.
+   * The color to use from your application's color palette.
    * Default options are: `"primary"`, `"secondary"`, `"tertiary"`, `"success"`, `"warning"`, `"danger"`, `"light"`, `"medium"`, and `"dark"`.
-   * For more information, see [Theming your App](/docs/theming/theming-your-app).
+   * For more information on colors, see [theming](/docs/theming/basics).
    */
-  @Prop() color!: string;
-
-  /**
-   * The mode determines which platform styles to use.
-   * Possible values are: `"ios"` or `"md"`.
-   * For more information, see [Platform Styles](/docs/theming/platform-specific-styles).
-   */
-  @Prop() mode!: Mode;
+  @Prop({ reflect: true }) color?: Color;
 
   /**
    * The name of the control, which is submitted with the form data.
@@ -44,24 +56,64 @@ export class Toggle implements CheckboxInput {
   @Prop() name: string = this.inputId;
 
   /**
-   * If true, the toggle is selected. Defaults to `false`.
+   * If `true`, the toggle is selected.
    */
   @Prop({ mutable: true }) checked = false;
 
-  /*
-   * If true, the user cannot interact with the toggle. Default false.
+  /**
+   * If `true`, the user cannot interact with the toggle.
    */
   @Prop() disabled = false;
 
   /**
-   * the value of the toggle.
+   * The value of the toggle does not mean if it's checked or not, use the `checked`
+   * property for that.
+   *
+   * The value of a toggle is analogous to the value of a `<input type="checkbox">`,
+   * it's only used when the toggle participates in a native `<form>`.
    */
-  @Prop() value = 'on';
+  @Prop() value?: string | null = 'on';
 
   /**
-   * Emitted when the value property has changed.
+   * Enables the on/off accessibility switch labels within the toggle.
    */
-  @Event() ionChange!: EventEmitter<CheckedInputChangeEvent>;
+  @Prop() enableOnOffLabels: boolean | undefined = config.get('toggleOnOffLabels');
+
+  /**
+   * Where to place the label relative to the input.
+   * `"start"`: The label will appear to the left of the toggle in LTR and to the right in RTL.
+   * `"end"`: The label will appear to the right of the toggle in LTR and to the left in RTL.
+   * `"fixed"`: The label has the same behavior as `"start"` except it also has a fixed width. Long text will be truncated with ellipses ("...").
+   * `"stacked"`: The label will appear above the toggle regardless of the direction. The alignment of the label can be controlled with the `alignment` property.
+   */
+  @Prop() labelPlacement: 'start' | 'end' | 'fixed' | 'stacked' = 'start';
+
+  /**
+   * How to pack the label and toggle within a line.
+   * `"start"`: The label and toggle will appear on the left in LTR and
+   * on the right in RTL.
+   * `"end"`: The label and toggle will appear on the right in LTR and
+   * on the left in RTL.
+   * `"space-between"`: The label and toggle will appear on opposite
+   * ends of the line with space between the two elements.
+   * Setting this property will change the toggle `display` to `block`.
+   */
+  @Prop() justify?: 'start' | 'end' | 'space-between';
+
+  /**
+   * How to control the alignment of the toggle and label on the cross axis.
+   * `"start"`: The label and control will appear on the left of the cross axis in LTR, and on the right side in RTL.
+   * `"center"`: The label and control will appear at the center of the cross axis in both LTR and RTL.
+   * Setting this property will change the toggle `display` to `block`.
+   */
+  @Prop() alignment?: 'start' | 'center';
+
+  /**
+   * Emitted when the user switches the toggle on or off.
+   *
+   * This event will not emit when programmatically setting the `checked` property.
+   */
+  @Event() ionChange!: EventEmitter<ToggleChangeEventDetail>;
 
   /**
    * Emitted when the toggle has focus.
@@ -73,148 +125,232 @@ export class Toggle implements CheckboxInput {
    */
   @Event() ionBlur!: EventEmitter<void>;
 
-  /**
-   * Emitted when the styles change.
-   */
-  @Event() ionStyle!: EventEmitter<StyleEvent>;
-
-
-  @Watch('checked')
-  checkedChanged(isChecked: boolean) {
-    this.ionChange.emit({
-      checked: isChecked,
-      value: this.value
-    });
-    this.emitStyle();
-  }
-
   @Watch('disabled')
-  emitStyle() {
-    this.ionStyle.emit({
-      'toggle-disabled': this.disabled,
-      'toggle-checked': this.checked,
-      'toggle-activated': this.activated
+  disabledChanged() {
+    if (this.gesture) {
+      this.gesture.enable(!this.disabled);
+    }
+  }
+
+  private toggleChecked() {
+    const { checked, value } = this;
+
+    const isNowChecked = !checked;
+    this.checked = isNowChecked;
+
+    this.ionChange.emit({
+      checked: isNowChecked,
+      value,
     });
   }
 
-  componentWillLoad() {
-    this.ionStyle = deferEvent(this.ionStyle);
-    this.emitStyle();
+  async connectedCallback() {
+    /**
+     * If we have not yet rendered
+     * ion-toggle, then toggleTrack is not defined.
+     * But if we are moving ion-toggle via appendChild,
+     * then toggleTrack will be defined.
+     */
+    if (this.didLoad) {
+      this.setupGesture();
+    }
   }
 
   componentDidLoad() {
-    const parentItem = this.nativeInput.closest('ion-item');
-    if (parentItem) {
-      const itemLabel = parentItem.querySelector('ion-label');
-      if (itemLabel) {
-        itemLabel.id = this.inputId + '-lbl';
-        this.nativeInput.setAttribute('aria-labelledby', itemLabel.id);
-      }
+    this.setupGesture();
+    this.didLoad = true;
+  }
+
+  private setupGesture = async () => {
+    const { toggleTrack } = this;
+
+    if (toggleTrack) {
+      this.gesture = (await import('../../utils/gesture')).createGesture({
+        el: toggleTrack,
+        gestureName: 'toggle',
+        gesturePriority: 100,
+        threshold: 5,
+        passive: false,
+        onStart: () => this.onStart(),
+        onMove: (ev) => this.onMove(ev),
+        onEnd: (ev) => this.onEnd(ev),
+      });
+      this.disabledChanged();
+    }
+  };
+
+  disconnectedCallback() {
+    if (this.gesture) {
+      this.gesture.destroy();
+      this.gesture = undefined;
     }
   }
 
-  private onDragStart(detail: GestureDetail) {
-    this.pivotX = detail.currentX;
-    this.activated = true;
-
-    // touch-action does not work in iOS
-    detail.event.preventDefault();
-    return true;
-  }
-
-  private onDragMove(detail: GestureDetail) {
-    const currentX = detail.currentX;
-    if (shouldToggle(this.checked, currentX - this.pivotX, -15)) {
-      this.checked = !this.checked;
-      this.pivotX = currentX;
-      hapticSelection();
-    }
-  }
-
-  private onDragEnd(detail: GestureDetail) {
-    const delta = detail.currentX - this.pivotX;
-    if (shouldToggle(this.checked, delta, 4)) {
-      this.checked = !this.checked;
-      hapticSelection();
-    }
-
-    this.activated = false;
-    this.nativeInput.focus();
-  }
-
-  private onChange() {
-    this.checked = !this.checked;
-  }
-
-  private onKeyUp() {
-    this.keyFocus = true;
-  }
-
-  private onFocus() {
-    this.ionFocus.emit();
-  }
-
-  private onBlur() {
-    this.keyFocus = false;
-    this.ionBlur.emit();
-  }
-
-  hostData() {
-    return {
-      class: {
-        'toggle-activated': this.activated,
-        'toggle-checked': this.checked,
-        'toggle-disabled': this.disabled,
-        'toggle-key': this.keyFocus
-      }
+  componentWillLoad() {
+    this.inheritedAttributes = {
+      ...inheritAriaAttributes(this.el),
     };
   }
 
-  render() {
-    return [
-      <ion-gesture
-        onStart={this.onDragStart.bind(this)}
-        onMove={this.onDragMove.bind(this)}
-        onEnd={this.onDragEnd.bind(this)}
-        gestureName="toggle"
-        passive={false}
-        gesturePriority={30}
-        direction="x"
-        threshold={0}
-        attachTo="parent"
-        disabled={this.disabled}
-        tabIndex={-1}>
-        <div class="toggle-icon">
-          <div class="toggle-inner"/>
+  private onStart() {
+    this.activated = true;
+
+    // touch-action does not work in iOS
+    this.setFocus();
+  }
+
+  private onMove(detail: GestureDetail) {
+    if (shouldToggle(isRTL(this.el), this.checked, detail.deltaX, -10)) {
+      this.toggleChecked();
+      hapticSelection();
+    }
+  }
+
+  private onEnd(ev: GestureDetail) {
+    this.activated = false;
+    this.lastDrag = Date.now();
+    ev.event.preventDefault();
+    ev.event.stopImmediatePropagation();
+  }
+
+  private getValue() {
+    return this.value || '';
+  }
+
+  private setFocus() {
+    if (this.focusEl) {
+      this.focusEl.focus();
+    }
+  }
+
+  private onClick = (ev: MouseEvent) => {
+    if (this.disabled) {
+      return;
+    }
+
+    ev.preventDefault();
+
+    if (this.lastDrag + 300 < Date.now()) {
+      this.toggleChecked();
+    }
+  };
+
+  private onFocus = () => {
+    this.ionFocus.emit();
+  };
+
+  private onBlur = () => {
+    this.ionBlur.emit();
+  };
+
+  private getSwitchLabelIcon = (mode: Mode, checked: boolean) => {
+    if (mode === 'md') {
+      return checked ? checkmarkOutline : removeOutline;
+    }
+    return checked ? removeOutline : ellipseOutline;
+  };
+
+  private renderOnOffSwitchLabels(mode: Mode, checked: boolean) {
+    const icon = this.getSwitchLabelIcon(mode, checked);
+
+    return (
+      <ion-icon
+        class={{
+          'toggle-switch-icon': true,
+          'toggle-switch-icon-checked': checked,
+        }}
+        icon={icon}
+        aria-hidden="true"
+      ></ion-icon>
+    );
+  }
+
+  private renderToggleControl() {
+    const mode = getIonMode(this);
+
+    const { enableOnOffLabels, checked } = this;
+    return (
+      <div class="toggle-icon" part="track" ref={(el) => (this.toggleTrack = el)}>
+        {/* The iOS on/off labels are rendered outside of .toggle-icon-wrapper,
+         since the wrapper is translated when the handle is interacted with and
+         this would move the on/off labels outside of the view box */}
+        {enableOnOffLabels &&
+          mode === 'ios' && [this.renderOnOffSwitchLabels(mode, true), this.renderOnOffSwitchLabels(mode, false)]}
+        <div class="toggle-icon-wrapper">
+          <div class="toggle-inner" part="handle">
+            {enableOnOffLabels && mode === 'md' && this.renderOnOffSwitchLabels(mode, checked)}
+          </div>
         </div>
-        <div class="toggle-cover"/>
-      </ion-gesture>,
-      <input
-        type="checkbox"
-        onChange={this.onChange.bind(this)}
-        onFocus={this.onFocus.bind(this)}
-        onBlur={this.onBlur.bind(this)}
-        onKeyUp={this.onKeyUp.bind(this)}
-        checked={this.checked}
-        id={this.inputId}
-        name={this.name}
-        value={this.value}
-        disabled={this.disabled}
-        ref={r => this.nativeInput = (r as any)}/>
-    ];
+      </div>
+    );
+  }
+
+  private get hasLabel() {
+    return this.el.textContent !== '';
+  }
+
+  render() {
+    const { activated, color, checked, disabled, el, justify, labelPlacement, inputId, name, alignment } = this;
+
+    const mode = getIonMode(this);
+    const value = this.getValue();
+    const rtl = isRTL(el) ? 'rtl' : 'ltr';
+    renderHiddenInput(true, el, name, checked ? value : '', disabled);
+
+    return (
+      <Host
+        onClick={this.onClick}
+        class={createColorClasses(color, {
+          [mode]: true,
+          'in-item': hostContext('ion-item', el),
+          'toggle-activated': activated,
+          'toggle-checked': checked,
+          'toggle-disabled': disabled,
+          [`toggle-justify-${justify}`]: justify !== undefined,
+          [`toggle-alignment-${alignment}`]: alignment !== undefined,
+          [`toggle-label-placement-${labelPlacement}`]: true,
+          [`toggle-${rtl}`]: true,
+        })}
+      >
+        <label class="toggle-wrapper">
+          {/*
+            The native control must be rendered
+            before the visible label text due to https://bugs.webkit.org/show_bug.cgi?id=251951
+          */}
+          <input
+            type="checkbox"
+            role="switch"
+            aria-checked={`${checked}`}
+            checked={checked}
+            disabled={disabled}
+            id={inputId}
+            onFocus={() => this.onFocus()}
+            onBlur={() => this.onBlur()}
+            ref={(focusEl) => (this.focusEl = focusEl)}
+            {...this.inheritedAttributes}
+          />
+          <div
+            class={{
+              'label-text-wrapper': true,
+              'label-text-wrapper-hidden': !this.hasLabel,
+            }}
+            part="label"
+          >
+            <slot></slot>
+          </div>
+          <div class="native-wrapper">{this.renderToggleControl()}</div>
+        </label>
+      </Host>
+    );
   }
 }
 
-function shouldToggle(checked: boolean, deltaX: number, margin: number): boolean {
-  const isRTL = document.dir === 'rtl';
-
+const shouldToggle = (rtl: boolean, checked: boolean, deltaX: number, margin: number): boolean => {
   if (checked) {
-    return (!isRTL && (margin > deltaX)) ||
-      (isRTL && (- margin < deltaX));
+    return (!rtl && margin > deltaX) || (rtl && -margin < deltaX);
   } else {
-    return (!isRTL && (- margin < deltaX)) ||
-      (isRTL && (margin > deltaX));
+    return (!rtl && -margin < deltaX) || (rtl && margin > deltaX);
   }
-}
+};
 
 let toggleIds = 0;

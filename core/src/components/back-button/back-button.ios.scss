@@ -4,48 +4,53 @@
 // iOS Back Button
 // --------------------------------------------------
 
-.back-button-ios {
-  @include padding(0);
-  @include margin(2px, 0, 0, 0);
+:host {
+  --background-hover: transparent;
+  --background-hover-opacity: 1;
+  --background-focused: currentColor;
+  --background-focused-opacity: .1;
+  --border-radius: 4px;
+  --color: #{$back-button-ios-color};
+  --icon-margin-end: 1px;
+  --icon-margin-start: -4px;
+  /**
+   * The icon should be sized relative
+   * to the size of the text which is
+   * why we use em here instead of rem.
+   * This allows developers to override
+   * the text font size while ensuring that
+   * the icon is sized relative to that.
+   */
+  --icon-font-size: 1.6em;
+  --min-height: 32px;
 
-  z-index: $back-button-ios-button-z-index;
-  overflow: visible;
+  /**
+   * Main content should be prioritized over the back
+   * button which is why a maximum font size is applied.
+   * Also, we want the text to remain readable
+   * so a minimum font size is applied.
+   * Using 1.294 instead of 1.3 aligns the text
+   * with the icon a bit nicer in Firefox.
+   */
+  font-size: dynamic-font-clamp(1, 17px, 1.294);
+}
 
-  min-height: 32px;
-
-  border: 0;
-  font-size: 17px;
-  line-height: 1;
-
-  color: $back-button-ios-color;
-  background-color: transparent;
-
+.button-native {
   transform: translateZ(0);
 
-  &.activated {
-    opacity: .4;
-  }
+  overflow: visible;
+  z-index: $back-button-ios-button-z-index;
 }
 
-.back-button-ios ion-icon {
-  @include padding(0);
-  @include margin(0, -5px, 0, -4px);
-
-  display: inherit;
-
-  font-size: 1.85em;
-
-  pointer-events: none;
-}
-
-
-// Generate iOS Back Button Colors
+// Back Button States
 // --------------------------------------------------
 
-@each $color-name, $color-value in $colors-ios {
-  $base-color: ion-color($colors-ios, $color-name, base, ios);
+:host(.ion-activated) .button-native {
+  opacity: .4;
+}
 
-  .back-button-ios-#{$color-name} {
-    color: $base-color;
+@media (any-hover: hover) {
+  :host(:hover) {
+    opacity: .6;
   }
 }

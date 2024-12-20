@@ -1,33 +1,38 @@
-import { Animation } from '../../../interface';
+import { createAnimation } from '@utils/animation/animation';
+import { getElementRoot } from '@utils/helpers';
+
+import type { Animation } from '../../../interface';
+import type { ToastPresentOptions } from '../toast-interface';
+
+import { getOffsetForMiddlePosition } from './utils';
 
 /**
  * MD Toast Enter Animation
  */
-export default function mdEnterAnimation(Animation: Animation, baseEl: HTMLElement, position: string): Promise<Animation> {
-  const baseAnimation = new Animation();
+export const mdEnterAnimation = (baseEl: HTMLElement, opts: ToastPresentOptions): Animation => {
+  const baseAnimation = createAnimation();
+  const wrapperAnimation = createAnimation();
+  const { position, top, bottom } = opts;
 
-  const wrapperAnimation = new Animation();
-  const wrapperEle = baseEl.querySelector('.toast-wrapper') as HTMLElement;
-  wrapperAnimation.addElement(wrapperEle);
+  const root = getElementRoot(baseEl);
+  const wrapperEl = root.querySelector('.toast-wrapper') as HTMLElement;
+
+  wrapperAnimation.addElement(wrapperEl);
 
   switch (position) {
     case 'top':
-      wrapperAnimation.fromTo('translateY', '-100%', '0%');
+      wrapperEl.style.setProperty('transform', `translateY(${top})`);
+      wrapperAnimation.fromTo('opacity', 0.01, 1);
       break;
     case 'middle':
-      const topPosition = Math.floor(
-        baseEl.clientHeight / 2 - wrapperEle.clientHeight / 2
-      );
-      wrapperEle.style.top = `${topPosition}px`;
+      const topPosition = getOffsetForMiddlePosition(baseEl.clientHeight, wrapperEl.clientHeight);
+      wrapperEl.style.top = `${topPosition}px`;
       wrapperAnimation.fromTo('opacity', 0.01, 1);
       break;
     default:
-      wrapperAnimation.fromTo('translateY', '100%', '0%');
+      wrapperEl.style.setProperty('transform', `translateY(${bottom})`);
+      wrapperAnimation.fromTo('opacity', 0.01, 1);
       break;
   }
-  return Promise.resolve(baseAnimation
-    .addElement(baseEl)
-    .easing('cubic-bezier(.36,.66,.04,1)')
-    .duration(400)
-    .add(wrapperAnimation));
-}
+  return baseAnimation.easing('cubic-bezier(.36,.66,.04,1)').duration(400).addAnimation(wrapperAnimation);
+};

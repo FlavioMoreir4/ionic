@@ -4,22 +4,44 @@
 // iOS Segment
 // --------------------------------------------------
 
-.segment-ios {
-  font-family: $segment-ios-font-family;
+:host {
+  --background: #{$segment-ios-background-color};
+
+  @include border-radius($segment-ios-border-radius);
+
+  overflow: hidden;
+
+  z-index: 0;
 }
 
-.segment-ios.segment-disabled {
-  opacity: $segment-ios-opacity-disabled;
 
-  pointer-events: none;
-}
-
-
-// iOS Segment in Toolbar
+// Segment: Color
 // --------------------------------------------------
 
-.toolbar-ios .segment-ios {
-  @include position(0, 0, 0, 0);
+:host(.ion-color) {
+  background: #{current-color(base, 0.065)};
+}
 
-  position: absolute;
+
+// Segment: Default Toolbar
+// --------------------------------------------------
+
+:host(.in-toolbar) {
+  @include margin(0, auto);
+
+  width: auto;
+}
+
+// Default Segment, In a Toolbar
+:host(.in-toolbar:not(.ion-color)) {
+  background: var(--ion-toolbar-segment-background, var(--background));
+}
+
+
+// Segment: Color Toolbar
+// --------------------------------------------------
+
+// Toolbar with Color, Default Segment
+:host(.in-toolbar-color:not(.ion-color)) {
+  background: #{current-color(contrast, 0.11)};
 }

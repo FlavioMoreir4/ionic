@@ -1,36 +1,70 @@
-import { Component, Element, Event, EventEmitter, Listen, Method, Prop } from '@stencil/core';
-import { ActionSheetButton, Animation, AnimationBuilder, Config, CssClassMap, Mode } from '../../interface';
-import { BACKDROP, OverlayEventDetail, OverlayInterface, dismiss, eventMethod, isCancel, present } from '../../utils/overlays';
-import { createThemedClasses, getClassMap } from '../../utils/theme';
-import iosEnterAnimation from './animations/ios.enter';
-import iosLeaveAnimation from './animations/ios.leave';
-import mdEnterAnimation from './animations/md.enter';
-import mdLeaveAnimation from './animations/md.leave';
+import type { ComponentInterface, EventEmitter } from '@stencil/core';
+import { Watch, Component, Element, Event, Host, Method, Prop, h, readTask } from '@stencil/core';
+import type { Gesture } from '@utils/gesture';
+import { createButtonActiveGesture } from '@utils/gesture/button-active';
+import { raf } from '@utils/helpers';
+import { createLockController } from '@utils/lock-controller';
+import {
+  BACKDROP,
+  createDelegateController,
+  createTriggerController,
+  dismiss,
+  eventMethod,
+  isCancel,
+  prepareOverlay,
+  present,
+  safeCall,
+  setOverlayId,
+} from '@utils/overlays';
+import { getClassMap } from '@utils/theme';
 
+import { getIonMode } from '../../global/ionic-global';
+import type { AnimationBuilder, CssClassMap, FrameworkDelegate, OverlayInterface } from '../../interface';
+import type { OverlayEventDetail } from '../../utils/overlays-interface';
 
+import type { ActionSheetButton } from './action-sheet-interface';
+import { iosEnterAnimation } from './animations/ios.enter';
+import { iosLeaveAnimation } from './animations/ios.leave';
+import { mdEnterAnimation } from './animations/md.enter';
+import { mdLeaveAnimation } from './animations/md.leave';
+
+/**
+ * @virtualProp {"ios" | "md"} mode - The mode determines which platform styles to use.
+ */
 @Component({
   tag: 'ion-action-sheet',
   styleUrls: {
     ios: 'action-sheet.ios.scss',
-    md: 'action-sheet.md.scss'
+    md: 'action-sheet.md.scss',
   },
-  host: {
-    theme: 'action-sheet'
-  }
+  scoped: true,
 })
-export class ActionSheet implements OverlayInterface {
-
-  mode!: Mode;
-  color!: string;
+export class ActionSheet implements ComponentInterface, OverlayInterface {
+  private readonly delegateController = createDelegateController(this);
+  private readonly lockController = createLockController();
+  private readonly triggerController = createTriggerController();
+  private wrapperEl?: HTMLElement;
+  private groupEl?: HTMLElement;
+  private gesture?: Gesture;
 
   presented = false;
-  animation?: Animation;
+  lastFocus?: HTMLElement;
+  animation?: any;
 
-  @Element() el!: HTMLElement;
+  @Element() el!: HTMLIonActionSheetElement;
 
-  @Prop({ connect: 'ion-animation-controller' }) animationCtrl!: HTMLIonAnimationControllerElement;
-  @Prop({ context: 'config' }) config!: Config;
-  @Prop() overlayId!: number;
+  /** @internal */
+  @Prop() overlayIndex!: number;
+
+  /** @internal */
+  @Prop() delegate?: FrameworkDelegate;
+
+  /** @internal */
+  @Prop() hasController = false;
+
+  /**
+   * If `true`, the keyboard will be automatically dismissed when the overlay is presented.
+   */
   @Prop() keyboardClose = true;
 
   /**
@@ -46,7 +80,7 @@ export class ActionSheet implements OverlayInterface {
   /**
    * An array of buttons for the action sheet.
    */
-  @Prop() buttons!: ActionSheetButton[];
+  @Prop() buttons: (ActionSheetButton | string)[] = [];
 
   /**
    * Additional classes to apply for custom CSS. If multiple classes are
@@ -55,9 +89,9 @@ export class ActionSheet implements OverlayInterface {
   @Prop() cssClass?: string | string[];
 
   /**
-   * If true, the action sheet will be dismissed when the backdrop is clicked. Defaults to `true`.
+   * If `true`, the action sheet will be dismissed when the backdrop is clicked.
    */
-  @Prop() enableBackdropDismiss = true;
+  @Prop() backdropDismiss = true;
 
   /**
    * Title for the action sheet.
@@ -70,127 +104,173 @@ export class ActionSheet implements OverlayInterface {
   @Prop() subHeader?: string;
 
   /**
-   * If true, the action sheet will be translucent. Defaults to `false`.
+   * If `true`, the action sheet will be translucent.
+   * Only applies when the mode is `"ios"` and the device supports
+   * [`backdrop-filter`](https://developer.mozilla.org/en-US/docs/Web/CSS/backdrop-filter#Browser_compatibility).
    */
   @Prop() translucent = false;
 
   /**
-   * If true, the action sheet will animate. Defaults to `true`.
+   * If `true`, the action sheet will animate.
    */
-  @Prop() willAnimate = true;
+  @Prop() animated = true;
 
   /**
-   * Emitted after the alert has loaded.
+   * Additional attributes to pass to the action sheet.
    */
-  @Event() ionActionSheetDidLoad!: EventEmitter<void>;
+  @Prop() htmlAttributes?: { [key: string]: any };
 
   /**
-   * Emitted after the alert has unloaded.
+   * If `true`, the action sheet will open. If `false`, the action sheet will close.
+   * Use this if you need finer grained control over presentation, otherwise
+   * just use the actionSheetController or the `trigger` property.
+   * Note: `isOpen` will not automatically be set back to `false` when
+   * the action sheet dismisses. You will need to do that in your code.
    */
-  @Event() ionActionSheetDidUnload!: EventEmitter<void>;
-
-  /**
-   * Emitted after the alert has presented.
-   */
-  @Event({eventName: 'ionActionSheetDidPresent'}) didPresent!: EventEmitter<void>;
-
-  /**
-   * Emitted before the alert has presented.
-   */
-  @Event({eventName: 'ionActionSheetWillPresent'}) willPresent!: EventEmitter<void>;
-
-  /**
-   * Emitted before the alert has dismissed.
-   */
-  @Event({eventName: 'ionActionSheetWillDismiss'}) willDismiss!: EventEmitter<OverlayEventDetail>;
-
-  /**
-   * Emitted after the alert has dismissed.
-   */
-  @Event({eventName: 'ionActionSheetDidDismiss'}) didDismiss!: EventEmitter<OverlayEventDetail>;
-
-
-  componentDidLoad() {
-    this.ionActionSheetDidLoad.emit();
-  }
-
-  componentDidUnload() {
-    this.ionActionSheetDidUnload.emit();
-  }
-
-  @Listen('ionBackdropTap')
-  protected onBackdropTap() {
-    this.dismiss(null, BACKDROP);
-  }
-
-  @Listen('ionActionSheetWillDismiss')
-  protected dispatchCancelHandler(ev: CustomEvent) {
-    const role = ev.detail.role;
-    if (isCancel(role)) {
-      const cancelButton = this.buttons.find(b => b.role === 'cancel');
-      this.callButtonHandler(cancelButton);
+  @Prop() isOpen = false;
+  @Watch('isOpen')
+  onIsOpenChange(newValue: boolean, oldValue: boolean) {
+    if (newValue === true && oldValue === false) {
+      this.present();
+    } else if (newValue === false && oldValue === true) {
+      this.dismiss();
     }
   }
+
+  /**
+   * An ID corresponding to the trigger element that
+   * causes the action sheet to open when clicked.
+   */
+  @Prop() trigger: string | undefined;
+  @Watch('trigger')
+  triggerChanged() {
+    const { trigger, el, triggerController } = this;
+    if (trigger) {
+      triggerController.addClickListener(el, trigger);
+    }
+  }
+
+  /**
+   * Emitted after the action sheet has presented.
+   */
+  @Event({ eventName: 'ionActionSheetDidPresent' }) didPresent!: EventEmitter<void>;
+
+  /**
+   * Emitted before the action sheet has presented.
+   */
+  @Event({ eventName: 'ionActionSheetWillPresent' }) willPresent!: EventEmitter<void>;
+
+  /**
+   * Emitted before the action sheet has dismissed.
+   */
+  @Event({ eventName: 'ionActionSheetWillDismiss' }) willDismiss!: EventEmitter<OverlayEventDetail>;
+
+  /**
+   * Emitted after the action sheet has dismissed.
+   */
+  @Event({ eventName: 'ionActionSheetDidDismiss' }) didDismiss!: EventEmitter<OverlayEventDetail>;
+
+  /**
+   * Emitted after the action sheet has presented.
+   * Shorthand for ionActionSheetWillDismiss.
+   */
+  @Event({ eventName: 'didPresent' }) didPresentShorthand!: EventEmitter<void>;
+
+  /**
+   * Emitted before the action sheet has presented.
+   * Shorthand for ionActionSheetWillPresent.
+   */
+  @Event({ eventName: 'willPresent' }) willPresentShorthand!: EventEmitter<void>;
+
+  /**
+   * Emitted before the action sheet has dismissed.
+   * Shorthand for ionActionSheetWillDismiss.
+   */
+  @Event({ eventName: 'willDismiss' }) willDismissShorthand!: EventEmitter<OverlayEventDetail>;
+
+  /**
+   * Emitted after the action sheet has dismissed.
+   * Shorthand for ionActionSheetDidDismiss.
+   */
+  @Event({ eventName: 'didDismiss' }) didDismissShorthand!: EventEmitter<OverlayEventDetail>;
 
   /**
    * Present the action sheet overlay after it has been created.
    */
   @Method()
-  present(): Promise<void> {
-    return present(this, 'actionSheetEnter', iosEnterAnimation, mdEnterAnimation);
+  async present(): Promise<void> {
+    const unlock = await this.lockController.lock();
+
+    await this.delegateController.attachViewToDom();
+
+    await present(this, 'actionSheetEnter', iosEnterAnimation, mdEnterAnimation);
+
+    unlock();
   }
 
   /**
    * Dismiss the action sheet overlay after it has been presented.
+   *
+   * @param data Any data to emit in the dismiss events.
+   * @param role The role of the element that is dismissing the action sheet.
+   * This can be useful in a button handler for determining which button was
+   * clicked to dismiss the action sheet.
+   * Some examples include: ``"cancel"`, `"destructive"`, "selected"`, and `"backdrop"`.
+   *
+   * This is a no-op if the overlay has not been presented yet. If you want
+   * to remove an overlay from the DOM that was never presented, use the
+   * [remove](https://developer.mozilla.org/en-US/docs/Web/API/Element/remove) method.
    */
   @Method()
-  dismiss(data?: any, role?: string): Promise<void> {
-    return dismiss(this, data, role, 'actionSheetLeave', iosLeaveAnimation, mdLeaveAnimation);
+  async dismiss(data?: any, role?: string): Promise<boolean> {
+    const unlock = await this.lockController.lock();
+
+    const dismissed = await dismiss(this, data, role, 'actionSheetLeave', iosLeaveAnimation, mdLeaveAnimation);
+
+    if (dismissed) {
+      this.delegateController.removeViewFromDom();
+    }
+
+    unlock();
+
+    return dismissed;
   }
 
   /**
-   * Returns a promise that resolves when the action-sheet did dismiss. It also accepts a callback
-   * that is called in the same circustances.
-   *
-   * ```
-   * const {data, role} = await actionSheet.onDidDismiss();
-   * ```
+   * Returns a promise that resolves when the action sheet did dismiss.
    */
   @Method()
-  onDidDismiss(callback?: (detail: OverlayEventDetail) => void): Promise<OverlayEventDetail> {
-    return eventMethod(this.el, 'ionActionSheetDidDismiss', callback);
+  onDidDismiss<T = any>(): Promise<OverlayEventDetail<T>> {
+    return eventMethod(this.el, 'ionActionSheetDidDismiss');
   }
 
   /**
-   * Returns a promise that resolves when the action-sheet will dismiss. It also accepts a callback
-   * that is called in the same circustances.
+   * Returns a promise that resolves when the action sheet will dismiss.
    *
-   * ```
-   * const {data, role} = await actionSheet.onWillDismiss();
-   * ```
    */
   @Method()
-  onWillDismiss(callback?: (detail: OverlayEventDetail) => void): Promise<OverlayEventDetail> {
-    return eventMethod(this.el, 'ionActionSheetWillDismiss', callback);
+  onWillDismiss<T = any>(): Promise<OverlayEventDetail<T>> {
+    return eventMethod(this.el, 'ionActionSheetWillDismiss');
   }
 
-  protected buttonClick(button: ActionSheetButton) {
+  private async buttonClick(button: ActionSheetButton) {
     const role = button.role;
     if (isCancel(role)) {
-      this.dismiss(undefined, role);
-      return;
+      return this.dismiss(button.data, role);
     }
-    const shouldDismiss = this.callButtonHandler(button);
+    const shouldDismiss = await this.callButtonHandler(button);
     if (shouldDismiss) {
-      this.dismiss(undefined, button.role);
+      return this.dismiss(button.data, button.role);
     }
+    return Promise.resolve();
   }
 
-  private callButtonHandler(button: ActionSheetButton|undefined): boolean {
-    if (button && button.handler) {
+  private async callButtonHandler(button: ActionSheetButton | undefined) {
+    if (button) {
       // a handler has been provided, execute it
       // pass the handler the values from the inputs
-      if (button.handler() === false) {
+      const rtn = await safeCall(button.handler);
+      if (rtn === false) {
         // if the return value of the handler is false then do not dismiss
         return false;
       }
@@ -198,90 +278,186 @@ export class ActionSheet implements OverlayInterface {
     return true;
   }
 
-  hostData() {
-    const themedClasses = this.translucent ? createThemedClasses(this.mode, this.color, 'action-sheet-translucent') : {};
+  private getButtons(): ActionSheetButton[] {
+    return this.buttons.map((b) => {
+      return typeof b === 'string' ? { text: b } : b;
+    });
+  }
 
-    return {
-      style: {
-        zIndex: 20000 + this.overlayId,
-      },
-      class: {
-        ...themedClasses,
-        ...getClassMap(this.cssClass)
-      }
-    };
+  private onBackdropTap = () => {
+    this.dismiss(undefined, BACKDROP);
+  };
+
+  private dispatchCancelHandler = (ev: CustomEvent) => {
+    const role = ev.detail.role;
+    if (isCancel(role)) {
+      const cancelButton = this.getButtons().find((b) => b.role === 'cancel');
+      this.callButtonHandler(cancelButton);
+    }
+  };
+
+  connectedCallback() {
+    prepareOverlay(this.el);
+    this.triggerChanged();
+  }
+
+  disconnectedCallback() {
+    if (this.gesture) {
+      this.gesture.destroy();
+      this.gesture = undefined;
+    }
+    this.triggerController.removeClickListener();
+  }
+
+  componentWillLoad() {
+    if (!this.htmlAttributes?.id) {
+      setOverlayId(this.el);
+    }
+  }
+
+  componentDidLoad() {
+    /**
+     * Only create gesture if:
+     * 1. A gesture does not already exist
+     * 2. App is running in iOS mode
+     * 3. A wrapper ref exists
+     * 4. A group ref exists
+     */
+    const { groupEl, wrapperEl } = this;
+    if (!this.gesture && getIonMode(this) === 'ios' && wrapperEl && groupEl) {
+      readTask(() => {
+        const isScrollable = groupEl.scrollHeight > groupEl.clientHeight;
+        if (!isScrollable) {
+          this.gesture = createButtonActiveGesture(wrapperEl, (refEl: HTMLElement) =>
+            refEl.classList.contains('action-sheet-button')
+          );
+          this.gesture.enable(true);
+        }
+      });
+    }
+
+    /**
+     * If action sheet was rendered with isOpen="true"
+     * then we should open action sheet immediately.
+     */
+    if (this.isOpen === true) {
+      raf(() => this.present());
+    }
+
+    /**
+     * When binding values in frameworks such as Angular
+     * it is possible for the value to be set after the Web Component
+     * initializes but before the value watcher is set up in Stencil.
+     * As a result, the watcher callback may not be fired.
+     * We work around this by manually calling the watcher
+     * callback when the component has loaded and the watcher
+     * is configured.
+     */
+    this.triggerChanged();
   }
 
   render() {
-    const allButtons = this.buttons.map(b => {
-      if (typeof b === 'string') {
-        b = { text: b };
-      }
-      if (!b.cssClass) {
-        b.cssClass = '';
-      }
-      return b;
-    });
-    const cancelButton = allButtons.find(b => b.role === 'cancel');
-    const buttons = allButtons.filter(b => b.role !== 'cancel');
+    const { header, htmlAttributes, overlayIndex } = this;
+    const mode = getIonMode(this);
+    const allButtons = this.getButtons();
+    const cancelButton = allButtons.find((b) => b.role === 'cancel');
+    const buttons = allButtons.filter((b) => b.role !== 'cancel');
+    const headerID = `action-sheet-${overlayIndex}-header`;
 
-    return [
-      <ion-backdrop tappable={this.enableBackdropDismiss}/>,
-      <div class="action-sheet-wrapper" role="dialog">
-        <div class="action-sheet-container">
-          <div class="action-sheet-group">
-            {this.header
-              ? <div class="action-sheet-title">
-                {this.header}
-                {this.subHeader
-                ? <div class="action-sheet-sub-title">{this.subHeader}</div>
-                : null}
-              </div>
-              : null}
-            {buttons.map(b =>
-              <button class={buttonClass(b)} onClick={() => this.buttonClick(b)}>
-                <span class="action-sheet-button-inner">
-                  {b.icon
-                    ? <ion-icon name={b.icon} class="action-sheet-icon" />
-                    : null}
-                  {b.text}
-                </span>
-              </button>
-            )}
-          </div>
-          {cancelButton
-            ? <div class="action-sheet-group action-sheet-group-cancel">
+    return (
+      <Host
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={header !== undefined ? headerID : null}
+        tabindex="-1"
+        {...(htmlAttributes as any)}
+        style={{
+          zIndex: `${20000 + this.overlayIndex}`,
+        }}
+        class={{
+          [mode]: true,
+          ...getClassMap(this.cssClass),
+          'overlay-hidden': true,
+          'action-sheet-translucent': this.translucent,
+        }}
+        onIonActionSheetWillDismiss={this.dispatchCancelHandler}
+        onIonBackdropTap={this.onBackdropTap}
+      >
+        <ion-backdrop tappable={this.backdropDismiss} />
+
+        <div tabindex="0" aria-hidden="true"></div>
+
+        <div class="action-sheet-wrapper ion-overlay-wrapper" ref={(el) => (this.wrapperEl = el)}>
+          <div class="action-sheet-container">
+            <div class="action-sheet-group" ref={(el) => (this.groupEl = el)}>
+              {header !== undefined && (
+                <div
+                  id={headerID}
+                  class={{
+                    'action-sheet-title': true,
+                    'action-sheet-has-sub-title': this.subHeader !== undefined,
+                  }}
+                >
+                  {header}
+                  {this.subHeader && <div class="action-sheet-sub-title">{this.subHeader}</div>}
+                </div>
+              )}
+              {buttons.map((b) => (
                 <button
+                  {...b.htmlAttributes}
+                  type="button"
+                  id={b.id}
+                  class={buttonClass(b)}
+                  onClick={() => this.buttonClick(b)}
+                  disabled={b.disabled}
+                >
+                  <span class="action-sheet-button-inner">
+                    {b.icon && <ion-icon icon={b.icon} aria-hidden="true" lazy={false} class="action-sheet-icon" />}
+                    {b.text}
+                  </span>
+                  {mode === 'md' && <ion-ripple-effect></ion-ripple-effect>}
+                </button>
+              ))}
+            </div>
+
+            {cancelButton && (
+              <div class="action-sheet-group action-sheet-group-cancel">
+                {/*
+                  Cancel buttons intentionally do not
+                  receive a disabled state here as we should
+                  not make it difficult to dismiss the overlay.
+                */}
+                <button
+                  {...cancelButton.htmlAttributes}
+                  type="button"
                   class={buttonClass(cancelButton)}
                   onClick={() => this.buttonClick(cancelButton)}
                 >
                   <span class="action-sheet-button-inner">
-                    {cancelButton.icon
-                      ? <ion-icon
-                          name={cancelButton.icon}
-                          class="action-sheet-icon"
-                        />
-                      : null}
+                    {cancelButton.icon && (
+                      <ion-icon icon={cancelButton.icon} aria-hidden="true" lazy={false} class="action-sheet-icon" />
+                    )}
                     {cancelButton.text}
                   </span>
+                  {mode === 'md' && <ion-ripple-effect></ion-ripple-effect>}
                 </button>
-
               </div>
-            : null}
+            )}
+          </div>
         </div>
-      </div>
-    ];
+
+        <div tabindex="0" aria-hidden="true"></div>
+      </Host>
+    );
   }
 }
 
-function buttonClass(button: ActionSheetButton): CssClassMap {
-  const buttonClasses: any = {
+const buttonClass = (button: ActionSheetButton): CssClassMap => {
+  return {
     'action-sheet-button': true,
+    'ion-activatable': !button.disabled,
+    'ion-focusable': !button.disabled,
+    [`action-sheet-${button.role}`]: button.role !== undefined,
     ...getClassMap(button.cssClass),
   };
-  if (button.role) {
-    buttonClasses[`action-sheet-${button.role}`] = true;
-  }
-  return buttonClasses;
-}
-
+};

@@ -4,46 +4,55 @@
 // iOS Select
 // --------------------------------------------------
 
-.select-ios {
-  @include padding($select-ios-padding-top, $select-ios-padding-end, $select-ios-padding-bottom, $select-ios-padding-start);
-
-  font-family: $select-ios-font-family;
-  color: $select-ios-text-color;
+:host {
+  --highlight-height: 0px;
 }
 
-.select-ios .select-placeholder {
-  color: $select-ios-placeholder-color;
+.select-icon {
+  width: $select-ios-icon-size;
+  height: $select-ios-icon-size;
+
+  // Color deviates from the iOS spec, but satisfies WCAG AAA:
+  // https://www.w3.org/TR/WCAG20-TECHS/G18.html
+  color: #{$text-color-step-350};
 }
 
-.select-ios .select-icon {
-  position: relative;
+// Select Inner Wrapper
+// ----------------------------------------------------------------
 
-  width: 12px;
-  height: 18px;
+:host(.select-label-placement-stacked) .select-wrapper-inner,
+:host(.select-label-placement-floating) .select-wrapper-inner {
+  width: calc(100% - $select-ios-icon-size - $select-icon-margin-start);
 }
 
-.select-ios .select-icon .select-icon-inner {
-  @include position(50%, null, null, 5px);
-  @include margin(-2px, null, null, null);
+// Select: Disabled
+// ----------------------------------------------------------------
+// The select and label should use the
+// same opacity and match the other form
+// controls
 
-  position: absolute;
-
-  width: 0;
-  height: 0;
-
-  border-top: 5px solid;
-  border-right: 5px solid transparent;
-  border-left: 5px solid transparent;
-  color: $select-ios-icon-color;
-
-  pointer-events: none;
+:host(.select-disabled) {
+  opacity: $select-ios-disabled-opacity;
 }
 
+// Start/End Slots
+// ----------------------------------------------------------------
 
-// Stacked & Floating Select
-// --------------------------------------------------
+/**
+ * Slotted buttons have a lot of default padding that can
+ * cause them to look misaligned from other pieces such
+ * as the control's label, especially when using a clear
+ * fill. We also make them circular to ensure that non-
+ * clear buttons and the focus/hover state on clear ones
+ * don't look too crowded.
+ */
+::slotted(ion-button[slot="start"].button-has-icon-only),
+::slotted(ion-button[slot="end"].button-has-icon-only) {
+  --border-radius: 50%;
+  --padding-start: 0;
+  --padding-end: 0;
+  --padding-top: 0;
+  --padding-bottom: 0;
 
-.item-label-stacked .select-ios,
-.item-label-floating .select-ios {
-  @include padding(8px, null, 8px, 0);
+  aspect-ratio: 1;
 }

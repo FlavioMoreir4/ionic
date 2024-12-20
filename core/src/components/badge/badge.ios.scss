@@ -4,26 +4,15 @@
 // iOS Badge
 // --------------------------------------------------
 
-.badge-ios {
+:host {
   @include border-radius($badge-ios-border-radius);
 
-  font-family: $badge-ios-font-family;
-
-  color: $badge-ios-text-color;
-  background-color: $badge-ios-background-color;
-}
-
-
-// Generate iOS Badge Colors
-// --------------------------------------------------
-
-@each $color-name, $color-value in $colors-ios {
-  $base-color: ion-color($colors-ios, $color-name, base, ios);
-  $contrast-color: ion-color($colors-ios, $color-name, contrast, ios);
-
-  .badge-ios-#{$color-name} {
-    color: $contrast-color;
-    background-color: $base-color;
-  }
-
+  /**
+   * "-apple-system-body" on iOS never goes smaller than
+   * 14px according to https://developer.apple.com/design/human-interface-guidelines/typography#Specifications.
+   * However, we still keep the max() usage here for consistency
+   * with other components and in case "-apple-system-body" does
+   * go smaller than 14px in the future.
+   */
+  font-size: dynamic-font-min(1, $badge-baseline-font-size);
 }

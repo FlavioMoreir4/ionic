@@ -1,27 +1,31 @@
-import { Animation } from '../../../interface';
+import { createAnimation } from '@utils/animation/animation';
 
+import type { Animation } from '../../../interface';
 
 /**
  * iOS Loading Enter Animation
  */
-export default function iosEnterAnimation(Animation: Animation, baseEl: HTMLElement): Promise<Animation> {
-  const baseAnimation = new Animation();
+export const iosEnterAnimation = (baseEl: HTMLElement): Animation => {
+  const baseAnimation = createAnimation();
+  const backdropAnimation = createAnimation();
+  const wrapperAnimation = createAnimation();
 
-  const backdropAnimation = new Animation();
-  backdropAnimation.addElement(baseEl.querySelector('ion-backdrop'));
+  backdropAnimation
+    .addElement(baseEl.querySelector('ion-backdrop')!)
+    .fromTo('opacity', 0.01, 'var(--backdrop-opacity)')
+    .beforeStyles({
+      'pointer-events': 'none',
+    })
+    .afterClearStyles(['pointer-events']);
 
-  const wrapperAnimation = new Animation();
-  wrapperAnimation.addElement(baseEl.querySelector('.loading-wrapper'));
+  wrapperAnimation.addElement(baseEl.querySelector('.loading-wrapper')!).keyframes([
+    { offset: 0, opacity: 0.01, transform: 'scale(1.1)' },
+    { offset: 1, opacity: 1, transform: 'scale(1)' },
+  ]);
 
-  backdropAnimation.fromTo('opacity', 0.01, 0.3);
-
-  wrapperAnimation.fromTo('opacity', 0.01, 1)
-                  .fromTo('scale', 1.1, 1);
-
-  return Promise.resolve(baseAnimation
+  return baseAnimation
     .addElement(baseEl)
     .easing('ease-in-out')
     .duration(200)
-    .add(backdropAnimation)
-    .add(wrapperAnimation));
-}
+    .addAnimation([backdropAnimation, wrapperAnimation]);
+};

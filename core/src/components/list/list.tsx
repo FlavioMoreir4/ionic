@@ -1,47 +1,63 @@
-import { Component, Method } from '@stencil/core';
+import type { ComponentInterface } from '@stencil/core';
+import { Component, Element, Host, Method, Prop, h } from '@stencil/core';
 
+import { getIonMode } from '../../global/ionic-global';
+
+/**
+ * @virtualProp {"ios" | "md"} mode - The mode determines which platform styles to use.
+ */
 @Component({
   tag: 'ion-list',
   styleUrls: {
     ios: 'list.ios.scss',
-    md: 'list.md.scss'
+    md: 'list.md.scss',
   },
-  host: {
-    theme: 'list'
-  }
 })
-export class List {
-
-  private openItem?: HTMLIonItemSlidingElement;
-
-  /**
-   * Get the [Item Sliding](../../item-sliding/ItemSliding) that is currently opene.
-   */
-  @Method()
-  getOpenItem() {
-    return this.openItem;
-  }
+export class List implements ComponentInterface {
+  @Element() el!: HTMLElement;
 
   /**
-   * Set an [Item Sliding](../../item-sliding/ItemSliding) as the open item.
+   * How the bottom border should be displayed on all items.
    */
-  @Method()
-  setOpenItem(itemSliding: HTMLIonItemSlidingElement | undefined) {
-    this.openItem = itemSliding;
-  }
+  @Prop() lines?: 'full' | 'inset' | 'none';
 
   /**
-   * Close the sliding items. Items can also be closed from the [Item Sliding](../../item-sliding/ItemSliding).
-   * Returns a boolean value of whether it closed an item or not.
+   * If `true`, the list will have margin around it and rounded corners.
+   */
+  @Prop() inset = false;
+
+  /**
+   * If `ion-item-sliding` are used inside the list, this method closes
+   * any open sliding item.
+   *
+   * Returns `true` if an actual `ion-item-sliding` is closed.
    */
   @Method()
-  closeSlidingItems(): boolean {
-    if (this.openItem) {
-      this.openItem.close();
-      this.openItem = undefined;
-      return true;
+  async closeSlidingItems(): Promise<boolean> {
+    const item = this.el.querySelector('ion-item-sliding');
+    if (item?.closeOpened) {
+      return item.closeOpened();
     }
     return false;
   }
 
+  render() {
+    const mode = getIonMode(this);
+    const { lines, inset } = this;
+    return (
+      <Host
+        role="list"
+        class={{
+          [mode]: true,
+
+          // Used internally for styling
+          [`list-${mode}`]: true,
+
+          'list-inset': inset,
+          [`list-lines-${lines}`]: lines !== undefined,
+          [`list-${mode}-lines-${lines}`]: lines !== undefined,
+        }}
+      ></Host>
+    );
+  }
 }

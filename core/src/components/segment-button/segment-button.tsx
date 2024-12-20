@@ -1,92 +1,199 @@
-import { Component, Element, Event, EventEmitter, Prop, Watch } from '@stencil/core';
-import { Mode } from '../../interface';
-import { createThemedClasses, getElementClassMap } from '../../utils/theme';
+import type { ComponentInterface } from '@stencil/core';
+import { Component, Element, Host, Prop, Method, State, Watch, forceUpdate, h } from '@stencil/core';
+import type { ButtonInterface } from '@utils/element-interface';
+import type { Attributes } from '@utils/helpers';
+import { addEventListener, removeEventListener, inheritAttributes } from '@utils/helpers';
+import { hostContext } from '@utils/theme';
+
+import { getIonMode } from '../../global/ionic-global';
+import type { SegmentValue } from '../segment/segment-interface';
+
+import type { SegmentButtonLayout } from './segment-button-interface';
 
 let ids = 0;
 
+/**
+ * @virtualProp {"ios" | "md"} mode - The mode determines which platform styles to use.
+ *
+ * @part native - The native HTML button element that wraps all child elements.
+ * @part indicator - The indicator displayed on the checked segment button.
+ * @part indicator-background - The background element for the indicator displayed on the checked segment button.
+ */
 @Component({
   tag: 'ion-segment-button',
   styleUrls: {
     ios: 'segment-button.ios.scss',
-    md: 'segment-button.md.scss'
-  }
+    md: 'segment-button.md.scss',
+  },
+  shadow: true,
 })
-export class SegmentButton {
+export class SegmentButton implements ComponentInterface, ButtonInterface {
+  private segmentEl: HTMLIonSegmentElement | null = null;
+  private nativeEl: HTMLButtonElement | undefined;
+  private inheritedAttributes: Attributes = {};
 
   @Element() el!: HTMLElement;
 
-  /**
-   * The color to use for the text color.
-   * Default options are: `"primary"`, `"secondary"`, `"tertiary"`, `"success"`, `"warning"`, `"danger"`, `"light"`, `"medium"`, and `"dark"`.
-   */
-  @Prop() color!: string;
+  @State() checked = false;
 
   /**
-   * The mode determines which platform styles to use.
-   * Possible values are: `"ios"` or `"md"`.
+   * The `id` of the segment content.
    */
-  @Prop() mode!: Mode;
+  @Prop({ reflect: true }) contentId?: string;
 
   /**
-   * If true, the segment button is selected. Defaults to `false`.
+   * If `true`, the user cannot interact with the segment button.
    */
-  @Prop({mutable: true}) checked = false;
-
-  /*
-   * If true, the user cannot interact with the segment button. Default false.
-   */
-  @Prop() disabled = false;
+  @Prop({ mutable: true }) disabled = false;
 
   /**
-   * Contains a URL or a URL fragment that the hyperlink points to.
-   * If this property is set, an anchor tag will be rendered.
+   * Set the layout of the text and icon in the segment.
    */
-  @Prop() href?: string;
+  @Prop() layout?: SegmentButtonLayout = 'icon-top';
+
+  /**
+   * The type of the button.
+   */
+  @Prop() type: 'submit' | 'reset' | 'button' = 'button';
 
   /**
    * The value of the segment button.
    */
-  @Prop() value: string = 'ion-sb-' + (ids++);
+  @Prop() value: SegmentValue = 'ion-sb-' + ids++;
+  @Watch('value')
+  valueChanged() {
+    this.updateState();
+  }
+
+  connectedCallback() {
+    const segmentEl = (this.segmentEl = this.el.closest('ion-segment'));
+    if (segmentEl) {
+      this.updateState();
+      addEventListener(segmentEl, 'ionSelect', this.updateState);
+      addEventListener(segmentEl, 'ionStyle', this.updateStyle);
+    }
+
+    // Return if there is no contentId defined
+    if (!this.contentId) return;
+
+    // Attempt to find the Segment Content by its contentId
+    const segmentContent = document.getElementById(this.contentId) as HTMLIonSegmentContentElement | null;
+
+    // If no associated Segment Content exists, log an error and return
+    if (!segmentContent) {
+      console.error(`Segment Button: Unable to find Segment Content with id="${this.contentId}".`);
+      return;
+    }
+
+    // Ensure the found element is a valid ION-SEGMENT-CONTENT
+    if (segmentContent.tagName !== 'ION-SEGMENT-CONTENT') {
+      console.error(`Segment Button: Element with id="${this.contentId}" is not an <ion-segment-content> element.`);
+      return;
+    }
+
+    // Prevent buttons from being disabled when associated with segment content
+    if (this.disabled) {
+      console.warn(`Segment Button: Segment buttons cannot be disabled when associated with an <ion-segment-content>.`);
+      this.disabled = false;
+    }
+  }
+
+  disconnectedCallback() {
+    const segmentEl = this.segmentEl;
+    if (segmentEl) {
+      removeEventListener(segmentEl, 'ionSelect', this.updateState);
+      removeEventListener(segmentEl, 'ionStyle', this.updateStyle);
+      this.segmentEl = null;
+    }
+  }
+
+  componentWillLoad() {
+    this.inheritedAttributes = {
+      ...inheritAttributes(this.el, ['aria-label']),
+    };
+  }
+
+  private get hasLabel() {
+    return !!this.el.querySelector('ion-label');
+  }
+
+  private get hasIcon() {
+    return !!this.el.querySelector('ion-icon');
+  }
+
+  private updateStyle = () => {
+    forceUpdate(this);
+  };
+
+  private updateState = () => {
+    const { segmentEl } = this;
+
+    if (segmentEl) {
+      this.checked = segmentEl.value === this.value;
+
+      if (segmentEl.disabled) {
+        this.disabled = true;
+      }
+    }
+  };
 
   /**
-   * Emitted when the segment button is clicked.
+   * @internal
+   * Focuses the native <button> element
+   * inside of ion-segment-button.
    */
-  @Event() ionSelect!: EventEmitter<void>;
+  @Method()
+  async setFocus() {
+    const { nativeEl } = this;
 
-  @Watch('checked')
-  checkedChanged(checked: boolean, prev: boolean) {
-    if (checked && !prev) {
-      this.ionSelect.emit();
+    if (nativeEl !== undefined) {
+      nativeEl.focus();
     }
   }
 
   render() {
-    const themedClasses = createThemedClasses(this.mode, this.color, 'segment-button');
-    const hostClasses = getElementClassMap(this.el.classList);
-
-    const buttonClasses = {
-      'segment-button-disabled': this.disabled,
-      'segment-checked': this.checked,
-      ...themedClasses,
-      ...hostClasses,
-    };
-
-    const TagType = this.href ? 'a' : 'button';
-    const attrs = (TagType === 'button')
-      ? {type: 'button'}
-      : {};
-
-    return [
-      <TagType
-       {...attrs}
-        aria-pressed={this.checked}
-        class={buttonClasses}
-        disabled={this.disabled}
-        href={this.href}
-        onClick={() => this.checked = true }>
-          <slot></slot>
-          { this.mode === 'md' && <ion-ripple-effect tapClick={true}/> }
-      </TagType>
-    ];
+    const { checked, type, disabled, hasIcon, hasLabel, layout, segmentEl } = this;
+    const mode = getIonMode(this);
+    const hasSegmentColor = () => segmentEl?.color !== undefined;
+    return (
+      <Host
+        class={{
+          [mode]: true,
+          'in-toolbar': hostContext('ion-toolbar', this.el),
+          'in-toolbar-color': hostContext('ion-toolbar[color]', this.el),
+          'in-segment': hostContext('ion-segment', this.el),
+          'in-segment-color': hasSegmentColor(),
+          'segment-button-has-label': hasLabel,
+          'segment-button-has-icon': hasIcon,
+          'segment-button-has-label-only': hasLabel && !hasIcon,
+          'segment-button-has-icon-only': hasIcon && !hasLabel,
+          'segment-button-disabled': disabled,
+          'segment-button-checked': checked,
+          [`segment-button-layout-${layout}`]: true,
+          'ion-activatable': true,
+          'ion-activatable-instant': true,
+          'ion-focusable': true,
+        }}
+      >
+        <button
+          aria-selected={checked ? 'true' : 'false'}
+          role="tab"
+          ref={(el) => (this.nativeEl = el)}
+          type={type}
+          class="button-native"
+          part="native"
+          disabled={disabled}
+          {...this.inheritedAttributes}
+        >
+          <span class="button-inner">
+            <slot></slot>
+          </span>
+          {mode === 'md' && <ion-ripple-effect></ion-ripple-effect>}
+        </button>
+        <div part="indicator" class="segment-button-indicator segment-button-indicator-animated">
+          <div part="indicator-background" class="segment-button-indicator-background"></div>
+        </div>
+      </Host>
+    );
   }
 }

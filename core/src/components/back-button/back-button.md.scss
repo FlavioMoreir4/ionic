@@ -4,49 +4,70 @@
 // MD Back Button
 // --------------------------------------------------
 
-.back-button-md {
-  @include margin(2px, 6px, 0, 0);
-  @include padding(0, 5px);
+:host {
+  --border-radius: 4px;
+  --background-focused: currentColor;
+  --background-focused-opacity: .12;
+  --background-hover: currentColor;
+  --background-hover-opacity: 0.04;
+  --color: #{$back-button-md-color};
+  --icon-margin-end: 0;
+  --icon-margin-start: 0;
+  --icon-font-size: #{dynamic-font(24px)};
+  --icon-font-weight: normal;
+  --min-height: 32px;
+  --min-width: 44px;
+  --padding-start: 12px;
+  --padding-end: 12px;
 
-  min-width: 44px;
-  height: 32px;
-
-  border: 0;
-  font-size: 14px;
+  font-size: dynamic-font(14px);
   font-weight: 500;
+
   text-transform: uppercase;
-
-  color: $back-button-md-color;
-  background-color: transparent;
-
-  box-shadow: none;
-
-  &.activated {
-    opacity: .4;
-  }
 }
 
-.back-button-md ion-icon {
-  @include padding-horizontal(null, .3em);
-  @include margin(0);
-  @include padding(0, 6px);
-  @include text-align(start);
+:host(.back-button-has-icon-only) {
+  --border-radius: 50%;
 
-  font-size: 24px;
-  font-weight: normal;
+  min-width: 48px;
+  min-height: 48px;
+
+  /**
+   * This allows the icon only button to
+   * keep its circular shape even when the
+   * text scales up.
+   */
+  aspect-ratio: 1 / 1;
+}
+
+.button-native {
+  box-shadow: none;
+}
+
+.button-text {
+  @include padding(0, 4px);
+}
+
+ion-icon {
   line-height: .67;
 
-  pointer-events: none;
+  text-align: start;
 }
 
 
-// Generate Material Design Back Button Colors
+// Back Button Color: Hover
 // --------------------------------------------------
 
-@each $color-name, $color-value in $colors-md {
-  $base-color: ion-color($colors-md, $color-name, base, md);
-
-  .back-button-md-#{$color-name} {
-    color: $base-color;
+@media (any-hover: hover) {
+  :host(.ion-color:hover) .button-native::after {
+    background: #{current-color(base)};
   }
+}
+
+
+// Back Button Color: Focused
+// --------------------------------------------------
+
+:host(.ion-color.ion-focused) .button-native::after {
+  background: #{current-color(base)};
 }

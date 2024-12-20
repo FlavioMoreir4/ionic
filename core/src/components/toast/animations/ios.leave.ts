@@ -1,40 +1,31 @@
-import { Animation } from '../../../interface';
+import { createAnimation } from '@utils/animation/animation';
+import { getElementRoot } from '@utils/helpers';
+
+import type { Animation, ToastDismissOptions } from '../../../interface';
 
 /**
  * iOS Toast Leave Animation
  */
-export default function iosLeaveAnimation(Animation: Animation, baseEl: HTMLElement, position: string): Promise<Animation> {
-  const baseAnimation = new Animation();
+export const iosLeaveAnimation = (baseEl: HTMLElement, opts: ToastDismissOptions): Animation => {
+  const baseAnimation = createAnimation();
+  const wrapperAnimation = createAnimation();
+  const { position, top, bottom } = opts;
 
-  const wrapperAnimation = new Animation();
-  const wrapperEle = baseEl.querySelector('.toast-wrapper') as HTMLElement;
-  wrapperAnimation.addElement(wrapperEle);
+  const root = getElementRoot(baseEl);
+  const wrapperEl = root.querySelector('.toast-wrapper') as HTMLElement;
 
-  let variable;
-
-  if (CSS.supports('bottom', 'env(safe-area-inset-bottom)')) {
-    variable = 'env';
-  } else if (CSS.supports('bottom', 'constant(safe-area-inset-bottom)')) {
-    variable = 'constant';
-  }
-
-  const bottom = variable ? 'calc(-10px - ' + variable + '(safe-area-inset-bottom))' : '-10px';
-  const top = variable ? 'calc(' + variable + '(safe-area-inset-top) + 10px)' : '10px';
+  wrapperAnimation.addElement(wrapperEl);
 
   switch (position) {
     case 'top':
-      wrapperAnimation.fromTo('translateY', top, '-100%');
+      wrapperAnimation.fromTo('transform', `translateY(${top})`, 'translateY(-100%)');
       break;
     case 'middle':
       wrapperAnimation.fromTo('opacity', 0.99, 0);
       break;
     default:
-      wrapperAnimation.fromTo('translateY', bottom, '100%');
+      wrapperAnimation.fromTo('transform', `translateY(${bottom})`, 'translateY(100%)');
       break;
   }
-  return Promise.resolve(baseAnimation
-    .addElement(baseEl)
-    .easing('cubic-bezier(.36,.66,.04,1)')
-    .duration(300)
-    .add(wrapperAnimation));
-}
+  return baseAnimation.easing('cubic-bezier(.36,.66,.04,1)').duration(300).addAnimation(wrapperAnimation);
+};

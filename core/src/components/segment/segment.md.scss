@@ -4,12 +4,29 @@
 // Material Design Segment
 // --------------------------------------------------
 
-.segment-md {
-  font-family: $segment-md-font-family;
+:host {
+  --background: transparent;
+
+  grid-auto-columns: minmax(auto, $segment-button-md-max-width);
 }
 
-.segment-md.segment-disabled {
-  opacity: $segment-md-opacity-disabled;
+// Segment: In Toolbar
+// --------------------------------------------------
 
-  pointer-events: none;
+:host(.in-toolbar) {
+  /**
+   * Segment should inherit the
+   * height of the toolbar.
+   * Note: --min-height is initially
+   * set on ion-toolbar, not ion-segment
+   */
+  min-height: var(--min-height);
+}
+
+
+// Segment: Scrollable
+// --------------------------------------------------
+
+:host(.segment-scrollable) ::slotted(ion-segment-button) {
+  min-width: auto;
 }

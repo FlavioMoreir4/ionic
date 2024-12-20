@@ -7,13 +7,18 @@
     "declaration": true,
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
+    "assumeChangesOnlyAffectDirectDependencies": true,
     "jsx": "react",
     "jsxFactory": "h",
     "lib": [
       "dom",
-      "es2017"
+      "dom.iterable",
+      "es2017",
+      "es2020",
+      "es2021",
+      "esnext"
     ],
-    "module": "es2015",
+    "module": "esnext",
     "moduleResolution": "node",
     "noImplicitAny": true,
     "noImplicitReturns": true,
@@ -22,11 +27,16 @@
     "outDir": ".tmp",
     "pretty": true,
     "removeComments": false,
-    "target": "es2017"
+    "target": "es2017",
+    "baseUrl": ".",
+    "paths": {
+      "@utils/*": ["src/utils/*"],
+      "@utils/test": ["src/utils/test/utils"],
+      "@global/*": ["src/global/*"]
+    }
   },
   "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx"
+    "src",
   ],
   "exclude": [
     "node_modules"

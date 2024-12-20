@@ -3,7 +3,8 @@ const path = require('path');
 
 
 const cleanDirs = [
-  'dist'
+  'dist',
+  'css'
 ];
 
 cleanDirs.forEach(dir => {

@@ -1,31 +1,39 @@
-import { Component, Prop } from '@stencil/core';
-import { Mode } from '../../interface';
+import type { ComponentInterface } from '@stencil/core';
+import { Component, Host, Prop, h } from '@stencil/core';
+import { createColorClasses } from '@utils/theme';
 
+import { getIonMode } from '../../global/ionic-global';
+import type { Color } from '../../interface';
 
+/**
+ * @virtualProp {"ios" | "md"} mode - The mode determines which platform styles to use.
+ */
 @Component({
   tag: 'ion-note',
   styleUrls: {
     ios: 'note.ios.scss',
-    md: 'note.md.scss'
+    md: 'note.md.scss',
   },
-  host: {
-    theme: 'note'
-  }
+  shadow: true,
 })
-export class Note {
-
+export class Note implements ComponentInterface {
   /**
-   * The color to use from your Sass `$colors` map.
+   * The color to use from your application's color palette.
    * Default options are: `"primary"`, `"secondary"`, `"tertiary"`, `"success"`, `"warning"`, `"danger"`, `"light"`, `"medium"`, and `"dark"`.
-   * For more information, see [Theming your App](/docs/theming/theming-your-app).
+   * For more information on colors, see [theming](/docs/theming/basics).
    */
-  @Prop() color!: string;
+  @Prop({ reflect: true }) color?: Color;
 
-  /**
-   * The mode determines which platform styles to use.
-   * Possible values are: `"ios"` or `"md"`.
-   * For more information, see [Platform Styles](/docs/theming/platform-specific-styles).
-   */
-  @Prop() mode!: Mode;
-
+  render() {
+    const mode = getIonMode(this);
+    return (
+      <Host
+        class={createColorClasses(this.color, {
+          [mode]: true,
+        })}
+      >
+        <slot></slot>
+      </Host>
+    );
+  }
 }

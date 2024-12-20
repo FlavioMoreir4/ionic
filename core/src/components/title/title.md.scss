@@ -1,21 +1,27 @@
 @import "./title";
-@import "./title.md.vars";
 
 // Material Design Title
 // --------------------------------------------------
 
-.toolbar-title-md {
-  @include padding(0, 12px);
+:host {
+  @include padding(0, 20px);
 
-  font-size: $toolbar-md-title-font-size;
+  font-size: dynamic-font(20px);
   font-weight: 500;
-  color: $toolbar-md-title-text-color;
+
+  letter-spacing: .0125em;
 }
 
-@each $color-name, $color-value in $colors-md {
-  $color-contrast: ion-color($colors-md, $color-name, contrast, md);
 
-  .toolbar-#{$color-name} .toolbar-title-md {
-    color: $color-contrast;
-  }
+// Material Design Title: Small
+// --------------------------------------------------
+
+:host(.title-small) {
+  width: 100%;
+  height: 100%;
+
+  font-size: dynamic-font(15px);
+
+  font-weight: normal;
 }
+

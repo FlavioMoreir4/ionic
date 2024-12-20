@@ -1,27 +1,26 @@
 @import "../../themes/ionic.globals.md";
-
 @import "../item/item.md.vars";
 
 // Material Design Textarea
 // --------------------------------------------------
 
-/// @prop - Font family of the textarea
-$textarea-md-font-family:                    $font-family-md-base !default;
-
 /// @prop - Font size of the textarea
-$textarea-md-font-size:                      inherit !default;
+$textarea-md-font-size: inherit;
 
 /// @prop - Margin top of the textarea
-$textarea-md-margin-top:                     $item-md-padding-top !default;
+$textarea-md-padding-top: $item-md-padding-top;
 
 /// @prop - Margin end of the textarea
-$textarea-md-margin-end:                     ($item-md-padding-end / 2) !default;
+$textarea-md-padding-end: 0;
 
 /// @prop - Margin bottom of the textarea
-$textarea-md-margin-bottom:                  $item-md-padding-bottom !default;
+$textarea-md-padding-bottom: $item-md-padding-bottom;
 
 /// @prop - Margin start of the textarea
-$textarea-md-margin-start:                   ($item-md-padding-start / 2) !default;
+$textarea-md-padding-start: ($item-md-padding-start * 0.5);
 
-/// @prop - Placeholder text color of the textarea
-$textarea-md-placeholder-color:             $placeholder-text-md-color !default;
+/// @prop - The amount of whitespace to display on either side of the floating label
+$textarea-md-floating-label-padding: 4px;
+
+/// @prop - The opacity of the input text, label, helper text, char counter and placeholder of a disabled textarea
+$textarea-md-disabled-opacity: $form-control-md-disabled-opacity;

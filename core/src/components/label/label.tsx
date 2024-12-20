@@ -1,70 +1,115 @@
-import { Component, Element, Event, EventEmitter, Method, Prop, Watch } from '@stencil/core';
-import { Mode, StyleEvent } from '../../interface';
+import type { ComponentInterface, EventEmitter } from '@stencil/core';
+import { Component, Element, Event, Host, Prop, State, Watch, h } from '@stencil/core';
+import { createColorClasses, hostContext } from '@utils/theme';
 
+import { getIonMode } from '../../global/ionic-global';
+import type { Color, StyleEventDetail } from '../../interface';
 
+/**
+ * @virtualProp {"ios" | "md"} mode - The mode determines which platform styles to use.
+ */
 @Component({
   tag: 'ion-label',
   styleUrls: {
     ios: 'label.ios.scss',
-    md: 'label.md.scss'
+    md: 'label.md.scss',
   },
-  host: {
-    theme: 'label'
-  }
+  scoped: true,
 })
-export class Label {
+export class Label implements ComponentInterface {
+  private inRange = false;
 
   @Element() el!: HTMLElement;
 
   /**
-   * The color to use from your Sass `$colors` map.
+   * The color to use from your application's color palette.
    * Default options are: `"primary"`, `"secondary"`, `"tertiary"`, `"success"`, `"warning"`, `"danger"`, `"light"`, `"medium"`, and `"dark"`.
-   * For more information, see [Theming your App](/docs/theming/theming-your-app).
+   * For more information on colors, see [theming](/docs/theming/basics).
    */
-  @Prop() color!: string;
-
-  /**
-   * The mode determines which platform styles to use.
-   * Possible values are: `"ios"` or `"md"`.
-   * For more information, see [Platform Styles](/docs/theming/platform-specific-styles).
-   */
-  @Prop() mode!: Mode;
+  @Prop({ reflect: true }) color?: Color;
 
   /**
    * The position determines where and how the label behaves inside an item.
-   * Possible values are: 'inline' | 'fixed' | 'stacked' | 'floating'
    */
   @Prop() position?: 'fixed' | 'stacked' | 'floating';
 
   /**
-   * Emitted when the styles change.
+   * Emitted when the color changes.
+   * @internal
    */
-  @Event() ionStyle!: EventEmitter<StyleEvent>;
+  @Event() ionColor!: EventEmitter<StyleEventDetail>;
 
-  @Method()
-  getText(): string {
-    return this.el.textContent || '';
+  /**
+   * Emitted when the styles change.
+   * @internal
+   */
+  @Event() ionStyle!: EventEmitter<StyleEventDetail>;
+
+  @State() noAnimate = false;
+
+  componentWillLoad() {
+    this.inRange = !!this.el.closest('ion-range');
+    this.noAnimate = this.position === 'floating';
+    this.emitStyle();
+    this.emitColor();
   }
 
   componentDidLoad() {
-    this.positionChanged();
+    if (this.noAnimate) {
+      setTimeout(() => {
+        this.noAnimate = false;
+      }, 1000);
+    }
+  }
+
+  @Watch('color')
+  colorChanged() {
+    this.emitColor();
   }
 
   @Watch('position')
   positionChanged() {
-    const position = this.position;
-    return this.ionStyle.emit({
-      [`label-${position}`]: !!position,
+    this.emitStyle();
+  }
+
+  private emitColor() {
+    const { color } = this;
+
+    this.ionColor.emit({
+      'item-label-color': color !== undefined,
+      [`ion-color-${color}`]: color !== undefined,
     });
   }
 
-  hostData() {
+  private emitStyle() {
+    const { inRange, position } = this;
+
+    // If the label is inside of a range we don't want
+    // to override the classes added by the label that
+    // is a direct child of the item
+    if (!inRange) {
+      this.ionStyle.emit({
+        label: true,
+        [`label-${position}`]: position !== undefined,
+      });
+    }
+  }
+
+  render() {
     const position = this.position;
-    return {
-      class: {
-        [`label-${position}`]: !!position,
-        [`label-${this.mode}-${position}`]: !!position
-      }
-    };
+    const mode = getIonMode(this);
+    return (
+      <Host
+        class={createColorClasses(this.color, {
+          [mode]: true,
+          'in-item-color': hostContext('ion-item.ion-color', this.el),
+          [`label-${position}`]: position !== undefined,
+          [`label-no-animate`]: this.noAnimate,
+          'label-rtl': document.dir === 'rtl',
+        })}
+      >
+        <slot></slot>
+      </Host>
+    );
   }
 }

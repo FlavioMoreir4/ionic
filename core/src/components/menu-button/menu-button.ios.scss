@@ -1,39 +1,36 @@
+@import "../../themes/ionic.globals.ios";
 @import "./menu-button";
-@import "./menu-button.ios.vars";
 
 // iOS Menu Button
 // --------------------------------------------------
 
-.menu-button-ios .menu-button-inner {
-  @include padding(0);
-  @include margin(2px, 0, 0, 0);
-
-  z-index: $menu-button-ios-button-z-index;
-  overflow: visible;
+:host {
+  --background-focused: currentColor;
+  --background-focused-opacity: .1;
+  --border-radius: 4px;
+  --color: #{ion-color(primary, base)};
+  --padding-start: 5px;
+  --padding-end: 5px;
 
   min-height: 32px;
 
-  border: 0;
-  font-size: 17px;
-  line-height: 1;
-
-  color: $menu-button-ios-color;
-  background-color: transparent;
-
-  transform: translateZ(0);
-
-  &.activated {
-    opacity: .4;
-  }
+  font-size: dynamic-font-clamp(1, 31px, 1.23);
 }
 
-.menu-button-ios ion-icon {
-  @include padding(0);
-  @include margin(0, -3px, 0, 0);
 
-  display: inherit;
+// Menu Button: Activated
+// --------------------------------------------------
 
-  font-size: 1.75em;
+:host(.ion-activated) {
+  opacity: .4;
+}
 
-  pointer-events: none;
+
+// Menu Button: Hover
+// --------------------------------------------------
+
+@media (any-hover: hover) {
+  :host(:hover) {
+    opacity: .6;
+  }
 }

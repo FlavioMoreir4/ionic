@@ -3,56 +3,62 @@
 // Material Design Segment Button
 // --------------------------------------------------
 
-/// @prop - Text color of the segment button
-$segment-button-md-text-color:                 $toolbar-md-color-active !default;
-
-/// @prop - Width of the bottom border on the segment button
-$segment-button-md-border-bottom-width:        2px !default;
-
-/// @prop - Color of the bottom border on the segment button
-$segment-button-md-border-bottom-color:        rgba(#000, .10) !default;
-
 /// @prop - Opacity of the segment button
-$segment-button-md-opacity:                    .7 !default;
+$segment-button-md-opacity:                           .6;
 
-/// @prop - Border color of the activated segment button
-$segment-button-md-border-color-activated:     $toolbar-md-color-active !default;
+/// @prop - Text color of the segment button
+$segment-button-md-text-color:                        rgba($text-color-rgb, $segment-button-md-opacity);
 
-/// @prop - Opacity of the activated segment button
-$segment-button-md-opacity-activated:          1 !default;
+/// @prop - Text color of the checked segment button
+$segment-button-md-text-color-checked:                ion-color(primary, base);
+
+/// @prop - Background of the segment button
+$segment-button-md-background:                        none;
+
+/// @prop - Background of the checked segment button
+$segment-button-md-background-checked:                $segment-button-md-background;
 
 /// @prop - Opacity of the disabled segment button
-$segment-button-md-opacity-disabled:           .3 !default;
+$segment-button-md-opacity-disabled:                  .3;
 
 /// @prop - Padding top of the segment button
-$segment-button-md-padding-top:                0 !default;
+$segment-button-md-padding-top:                       0;
 
 /// @prop - Padding end of the segment button
-$segment-button-md-padding-end:                6px !default;
+$segment-button-md-padding-end:                       16px;
 
 /// @prop - Padding bottom of the segment button
-$segment-button-md-padding-bottom:             $segment-button-md-padding-top !default;
+$segment-button-md-padding-bottom:                    $segment-button-md-padding-top;
 
 /// @prop - Padding start of the segment button
-$segment-button-md-padding-start:              $segment-button-md-padding-end !default;
+$segment-button-md-padding-start:                     $segment-button-md-padding-end;
 
-/// @prop - Height of the segment button
-$segment-button-md-height:                     42px !default;
+/// @prop - Minimum height of the segment button
+$segment-button-md-min-height:                        48px;
+
+/// @prop - Minimum width of the segment button
+$segment-button-md-min-width:                         90px;
+
+/// @prop - Maximum width of the segment button
+$segment-button-md-max-width:                         360px;
 
 /// @prop - Line height of the segment button
-$segment-button-md-line-height:                40px !default;
+$segment-button-md-line-height:                       40px;
 
 /// @prop - Font size of the segment button
-$segment-button-md-font-size:                  12px !default;
+$segment-button-md-font-size:                         14px;
+
+/// @prop - Letter spacing of the segment button
+$segment-button-md-letter-spacing:                    .06em;
 
 /// @prop - Font weight of the segment button
-$segment-button-md-font-weight:                500 !default;
+$segment-button-md-font-weight:                       500;
 
 /// @prop - Transition of the segment button
-$segment-button-md-transition:                 100ms all linear !default;
+$segment-button-md-transition:                        color .15s linear 0s, opacity .15s linear 0s;
+
+/// @prop - Transition of the animated segment button
+$segment-button-md-transition-animated:               transform 250ms cubic-bezier(.4, 0, .2, 1);
 
 /// @prop - Size of an icon in the segment button
-$segment-button-md-icon-size:                  26px !default;
-
-/// @prop - Line height of an icon in the segment button
-$segment-button-md-icon-line-height:           $segment-button-md-line-height !default;
+$segment-button-md-icon-size:                         24px;

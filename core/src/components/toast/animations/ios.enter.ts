@@ -1,44 +1,36 @@
-import { Animation } from '../../../interface';
+import { createAnimation } from '@utils/animation/animation';
+import { getElementRoot } from '@utils/helpers';
+
+import type { Animation } from '../../../interface';
+import type { ToastPresentOptions } from '../toast-interface';
+
+import { getOffsetForMiddlePosition } from './utils';
 
 /**
  * iOS Toast Enter Animation
  */
-export default function iosEnterAnimation(Animation: Animation, baseEl: HTMLElement, position: string): Promise<Animation> {
-  const baseAnimation = new Animation();
+export const iosEnterAnimation = (baseEl: HTMLElement, opts: ToastPresentOptions): Animation => {
+  const baseAnimation = createAnimation();
+  const wrapperAnimation = createAnimation();
+  const { position, top, bottom } = opts;
 
-  const wrapperAnimation = new Animation();
-  const wrapperEle = baseEl.querySelector('.toast-wrapper') as HTMLElement;
-  wrapperAnimation.addElement(wrapperEle);
+  const root = getElementRoot(baseEl);
+  const wrapperEl = root.querySelector('.toast-wrapper') as HTMLElement;
 
-  let variable;
-
-  if (CSS.supports('bottom', 'env(safe-area-inset-bottom)')) {
-    variable = 'env';
-  } else if (CSS.supports('bottom', 'constant(safe-area-inset-bottom)')) {
-    variable = 'constant';
-  }
-
-  const bottom = variable ? 'calc(-10px - ' + variable + '(safe-area-inset-bottom))' : '-10px';
-  const top = variable ? 'calc(' + variable + '(safe-area-inset-top) + 10px)' : '10px';
+  wrapperAnimation.addElement(wrapperEl);
 
   switch (position) {
     case 'top':
-      wrapperAnimation.fromTo('translateY', '-100%', top);
+      wrapperAnimation.fromTo('transform', 'translateY(-100%)', `translateY(${top})`);
       break;
     case 'middle':
-      const topPosition = Math.floor(
-        baseEl.clientHeight / 2 - wrapperEle.clientHeight / 2
-      );
-      wrapperEle.style.top = `${topPosition}px`;
+      const topPosition = getOffsetForMiddlePosition(baseEl.clientHeight, wrapperEl.clientHeight);
+      wrapperEl.style.top = `${topPosition}px`;
       wrapperAnimation.fromTo('opacity', 0.01, 1);
       break;
     default:
-      wrapperAnimation.fromTo('translateY', '100%', bottom);
+      wrapperAnimation.fromTo('transform', 'translateY(100%)', `translateY(${bottom})`);
       break;
   }
-  return Promise.resolve(baseAnimation
-    .addElement(baseEl)
-    .easing('cubic-bezier(.155,1.105,.295,1.12)')
-    .duration(400)
-    .add(wrapperAnimation));
-}
+  return baseAnimation.easing('cubic-bezier(.155,1.105,.295,1.12)').duration(400).addAnimation(wrapperAnimation);
+};
